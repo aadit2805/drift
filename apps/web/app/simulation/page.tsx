@@ -158,6 +158,7 @@ export default function SimulationPage() {
             std: simulationResults.std,
             worstCase: simulationResults.worstCase,
             bestCase: simulationResults.bestCase,
+            assumptions: simulationResults.assumptions,
           },
           sensitivity: sensitivityResults,
           parsedGoal,
