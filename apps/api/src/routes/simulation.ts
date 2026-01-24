@@ -37,7 +37,9 @@ router.get('/financial-profile', async (req, res) => {
       // Get purchases
       const purchases = await nessieService.getAccountPurchases(checkingAccount._id)
       const merchants = await nessieService.getMerchants()
-      const merchantMap = new Map(merchants.map((m: any) => [m._id, m]))
+      const merchantMap = new Map<string, { _id: string; category?: string }>(
+        merchants.map((m: any) => [m._id, m])
+      )
 
       for (const purchase of purchases) {
         totalPurchases += purchase.amount
@@ -48,11 +50,15 @@ router.get('/financial-profile', async (req, res) => {
 
       // Get deposits (income)
       const deposits = await nessieService.getAccountDeposits(checkingAccount._id)
-      const salaryDeposits = deposits.filter((d: any) =>
-        d.description?.toLowerCase().includes('salary')
-      )
+      // Look for salary/direct deposit entries
+      const salaryDeposits = deposits.filter((d: any) => {
+        const desc = d.description?.toLowerCase() || ''
+        return desc.includes('salary') || desc.includes('direct deposit') || desc.includes('employer')
+      })
       if (salaryDeposits.length > 0) {
-        monthlyIncome = salaryDeposits[0].amount // Most recent salary
+        // Get the most common salary amount (bi-weekly) and multiply by 2 for monthly
+        const salaryAmount = salaryDeposits[0].amount
+        monthlyIncome = salaryAmount * 2 // Bi-weekly to monthly
       }
 
       // Get bills
@@ -69,8 +75,8 @@ router.get('/financial-profile', async (req, res) => {
       }
     }
 
-    // Calculate monthly spending (purchases over ~6 months + recurring bills)
-    const monthsOfData = 6
+    // Calculate monthly spending (purchases over ~12 months + recurring bills)
+    const monthsOfData = 12
     const monthlyPurchases = totalPurchases / monthsOfData
     const monthlySpending = monthlyPurchases + monthlyBills + monthlyLoanPayments
 
