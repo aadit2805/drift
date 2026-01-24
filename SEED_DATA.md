@@ -1,6 +1,19 @@
-# Seed Data - Jordan Smith (Average American Profile)
+# Seed Data - Demo Customer Profiles
 
-This document contains all the seeded data for the demo user, representing the **median American worker**.
+This document contains all seeded data for the demo users in the FutureCast application.
+
+## Quick Reference
+
+| Customer | ID | Net Worth | Monthly Cash Flow | Profile |
+|----------|-----|-----------|-------------------|---------|
+| **Jordan Smith** | `697541cf95150878eafea4ff` | -$21,000 | -$50/mo | Paycheck-to-paycheck |
+| **Taylor Chen** | `69754eb095150878eafeb524` | +$84,650 | +$1,256/mo | Well-off professional |
+
+---
+
+# Jordan Smith (Average American Profile)
+
+Represents the **median American worker** - living paycheck-to-paycheck with negative net worth.
 
 ## Data Sources
 
@@ -70,83 +83,6 @@ This represents a $56,000/year gross salary with ~$44,000 take-home after taxes.
 | Description | 2021 Toyota Camry |
 | Credit Score | 680 (average American) |
 
-## Merchants (27 total)
-
-### Groceries
-- Walmart Grocery
-- Kroger
-- Aldi
-- Costco
-
-### Dining & Fast Food
-- McDonald's
-- Chick-fil-A
-- Taco Bell
-- Applebee's
-- Local Pizza
-- DoorDash
-- Starbucks
-
-### Gas Stations
-- Shell
-- Exxon
-- BP
-
-### Transportation
-- Uber
-
-### Shopping
-- Amazon
-- Walmart
-- Target
-- Dollar General
-- T.J. Maxx
-
-### Entertainment
-- Netflix
-- AMC Theatres
-- Spotify
-
-### Health
-- CVS Pharmacy
-- Walgreens
-- Planet Fitness
-
-### Personal
-- Great Clips
-
-## Spending Patterns (Monthly Averages)
-
-| Category | Average | Notes |
-|----------|---------|-------|
-| Groceries | $380 | National average |
-| Dining | $280 | Americans spend ~$250-300/mo eating out |
-| Gas | $160 | Average gas spending |
-| Transport | $40 | Occasional rideshare |
-| Shopping | $180 | Discretionary purchases |
-| Entertainment | $60 | Movies, events |
-| Health | $90 | Pharmacy, gym extras |
-| Personal | $40 | Haircuts, etc |
-
-**Total Variable Spending:** ~$1,230/mo
-
-## Seasonal Spending Multipliers
-
-| Month | Multiplier | Reason |
-|-------|------------|--------|
-| January | 0.85x | Post-holiday recovery |
-| February | 0.80x | Lowest spending month |
-| March | 0.90x | Normal |
-| April | 0.95x | Tax refund spending |
-| May | 1.0x | Normal |
-| June | 1.05x | Summer starts |
-| July | 1.10x | Vacation season |
-| August | 1.05x | Back to school |
-| September | 0.95x | Normal |
-| October | 1.0x | Normal |
-| November | 1.15x | Black Friday |
-| December | 1.30x | Holiday shopping |
-
 ## Monthly Cash Flow Summary
 
 ```
@@ -182,41 +118,171 @@ NET CASH FLOW:             ~$-6 to -$150/mo
 
 **Key Insight:** This profile represents an American living paycheck-to-paycheck, with essentially zero monthly savings. This is representative of ~60% of Americans.
 
-## Transaction History
-
-| Metric | Value |
-|--------|-------|
-| **Duration** | 12 months |
-| **Total Transactions** | 341 |
-| **Total Deposits** | $44,878 |
-| **Total Purchases** | $15,902 |
-
-## API Endpoints
+## Seed Script
 
 ```bash
-# Get customer
-curl "http://api.nessieisreal.com/customers/697541cf95150878eafea4ff?key=API_KEY"
-
-# Get accounts
-curl "http://api.nessieisreal.com/customers/697541cf95150878eafea4ff/accounts?key=API_KEY"
-
-# Get purchases (use checking account ID)
-curl "http://api.nessieisreal.com/accounts/{checking_id}/purchases?key=API_KEY"
-
-# Get deposits
-curl "http://api.nessieisreal.com/accounts/{checking_id}/deposits?key=API_KEY"
-
-# Get bills
-curl "http://api.nessieisreal.com/accounts/{checking_id}/bills?key=API_KEY"
-
-# Get loans
-curl "http://api.nessieisreal.com/accounts/{checking_id}/loans?key=API_KEY"
+npx tsx scripts/seed-nessie.ts
 ```
 
-## Why This Profile?
+---
 
-This seed data was designed to represent the **median American worker**:
+# Taylor Chen (Well-Off Professional Profile)
 
+Represents an **upper-middle class tech professional** - positive cash flow with healthy savings.
+
+## Data Sources
+
+Based on upper-middle class professional:
+- Senior engineer/manager salary: ~$145,000/year
+- 6-month emergency fund
+- Investment accounts
+- Minimal debt (pays CC monthly)
+- No car loan (paid-off vehicle)
+
+## Customer Profile
+
+| Field | Value |
+|-------|-------|
+| **Customer ID** | `69754eb095150878eafeb524` |
+| **Name** | Taylor Chen |
+| **Address** | 1250 Marina Boulevard, San Francisco, CA 94123 |
+| **Location Notes** | San Francisco tech hub, higher cost of living |
+
+## Accounts
+
+| Account | Type | Balance | Notes |
+|---------|------|---------|-------|
+| Primary Checking | Checking | $12,500 | Comfortable buffer |
+| Emergency Fund | Savings | $45,000 | 6-month emergency fund |
+| Investment Account | Savings | $28,000 | Brokerage/investment |
+| Travel Rewards Card | Credit Card | $850 (debt) | Current cycle only, pays monthly |
+
+**Summary:**
+- Total Liquid Assets: $85,500
+- Total Debt: $850 (current CC cycle)
+- **Net Worth: +$84,650**
+
+## Income
+
+| Source | Amount | Frequency |
+|--------|--------|-----------|
+| Salary (Direct Deposit) | $4,167 | Bi-weekly (1st & 15th) |
+| Quarterly Bonus | ~$3,600 | Quarterly (Mar, Jun, Sep, Dec) |
+| Investment Dividends | ~$250 | Occasional (~15% of months) |
+
+**Take-Home Monthly Income:** ~$8,334 (base) + bonuses
+
+This represents a $145,000/year gross salary with ~$100,000 take-home after taxes.
+
+## Recurring Bills
+
+| Payee | Amount | Due Date |
+|-------|--------|----------|
+| Bay Property Management (Rent) | $2,400 | 1st |
+| GEICO (Car Insurance) | $110 | 15th |
+| PG&E (Electric) | $95 | 10th |
+| PG&E (Gas) | $45 | 10th |
+| Sonic Fiber (Internet) | $80 | 5th |
+| AT&T (Phone) | $65 | 18th |
+| Netflix | $23 | 8th |
+| Spotify | $11 | 8th |
+| Equinox (Gym) | $85 | 1st |
+| HBO Max | $16 | 12th |
+| NY Times | $17 | 15th |
+
+**Total Monthly Bills:** $2,947
+
+## Monthly Cash Flow Summary
+
+```
+INCOME
+├── Salary (bi-weekly):    $8,334
+├── Quarterly Bonus:       ~$1,200/mo avg
+├── Dividends (rare):      ~$40/mo avg
+└── TOTAL:                 ~$9,500
+
+FIXED EXPENSES
+├── Rent:                  $2,400
+├── Utilities:             $140
+├── Insurance:             $110
+├── Phone:                 $65
+├── Subscriptions:         $67
+├── Gym:                   $85
+└── SUBTOTAL:              $2,947
+
+VARIABLE SPENDING
+├── Groceries:             $600
+├── Dining:                $450
+├── Gas:                   $120
+├── Shopping:              $300
+├── Entertainment:         $150
+├── Health/Wellness:       $180
+├── Travel:                $400
+├── Investment Contrib:    $1,500
+└── SUBTOTAL:              ~$4,131
+
+TOTAL EXPENSES:            ~$7,078
+
+NET CASH FLOW:             ~+$1,256 to +$2,500/mo
+```
+
+**Key Insight:** This profile represents financial stability - healthy savings, minimal debt, and consistent positive cash flow. Good for demonstrating achievable goals.
+
+## Merchants (29 total)
+
+### Groceries
+- Whole Foods, Trader Joe's, Costco, Local Farmers Market
+
+### Dining
+- Sweetgreen, Chipotle, Local Bistro, Sushi Restaurant, Starbucks, Wine Bar
+
+### Gas
+- Shell, Chevron
+
+### Transportation
+- Uber, Lyft
+
+### Shopping
+- Amazon, REI, Apple Store, Nordstrom
+
+### Entertainment
+- AMC Theatres, Concert Venue, Golf Course
+
+### Health & Wellness
+- Equinox, CVS Pharmacy, Massage Envy
+
+### Travel
+- Delta Airlines, Airbnb, Marriott
+
+### Personal
+- Barber Shop, Dry Cleaner
+
+## Seed Script
+
+```bash
+npx tsx scripts/seed-welloff.ts
+```
+
+---
+
+# API Endpoints
+
+```bash
+# Jordan Smith
+curl "http://api.nessieisreal.com/customers/697541cf95150878eafea4ff?key=API_KEY"
+
+# Taylor Chen
+curl "http://api.nessieisreal.com/customers/69754eb095150878eafeb524?key=API_KEY"
+
+# Get accounts for any customer
+curl "http://api.nessieisreal.com/customers/{CUSTOMER_ID}/accounts?key=API_KEY"
+```
+
+---
+
+# Why These Profiles?
+
+## Jordan Smith (Average American)
 1. **Negative net worth** - Most Americans have more debt than savings
 2. **Living paycheck-to-paycheck** - ~60% of Americans can't cover a $1,000 emergency
 3. **Car loan debt** - Average American has $23K in auto loans
@@ -224,7 +290,20 @@ This seed data was designed to represent the **median American worker**:
 5. **Low savings** - Median savings is under $5,000
 6. **Rent-burdened** - Housing takes 40%+ of income
 
-This creates a realistic scenario for the Monte Carlo simulation where:
+This creates a realistic scenario where:
 - Goals are challenging but not impossible
 - Small changes in spending have significant impact
 - The user can see the value of financial planning
+
+## Taylor Chen (Well-Off Professional)
+1. **Positive net worth** - Healthy savings and investments
+2. **Emergency fund** - 6 months of expenses saved
+3. **No car loan** - Drives paid-off or company vehicle
+4. **Pays CC monthly** - No revolving debt
+5. **High savings rate** - Consistent $1,500/mo to investments
+6. **Comfortable lifestyle** - Can afford nice things while still saving
+
+This creates a scenario where:
+- Goals are more achievable
+- User can plan for larger goals (house down payment, early retirement)
+- Demonstrates what "financial health" looks like
