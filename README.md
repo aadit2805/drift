@@ -4,8 +4,6 @@
 
 > Run 10,000 simulations of your financial future in seconds. See probability distributions, not single-point estimates.
 
-Built for the Capital One + NorthMark HPC hackathon tracks.
-
 ## The Problem
 
 Traditional budgeting apps give you deterministic projections: "Save $500/month and you'll have $18,000 in 3 years."

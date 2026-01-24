@@ -12,7 +12,7 @@
     "lint": "turbo run lint",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:api": "npm run dev --workspace=apps/api",
-    "seed": "npx ts-node scripts/seed-nessie.ts"
+    "seed": "npx tsx scripts/seed-nessie.ts"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
