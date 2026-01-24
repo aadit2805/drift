@@ -1,205 +1,230 @@
-# Seed Data - Alex Morgan
+# Seed Data - Jordan Smith (Average American Profile)
 
-This document contains all the seeded data for the demo user pulled from the Nessie API.
+This document contains all the seeded data for the demo user, representing the **median American worker**.
+
+## Data Sources
+
+Based on 2024 national averages:
+- Median individual income: ~$56,000/year
+- Average savings account balance: ~$5,000
+- Average credit card debt: ~$6,000
+- Average auto loan balance: ~$23,000
+- Average credit score: 680
 
 ## Customer Profile
 
 | Field | Value |
 |-------|-------|
-| **Customer ID** | `6975325e95150878eafe8c79` |
-| **Name** | Alex Morgan |
-| **Address** | 245 Commonwealth Avenue, Boston, MA 02116 |
+| **Customer ID** | `697541cf95150878eafea4ff` |
+| **Name** | Jordan Smith |
+| **Address** | 847 Oak Street, Columbus, OH 43215 |
+| **Location Notes** | Columbus chosen for median cost of living |
 
 ## Accounts
 
-| Account | Type | Balance | ID |
-|---------|------|---------|-----|
-| Primary Checking | Checking | $4,850 | `6975325e95150878eafe8c7a` |
-| Emergency Fund | Savings | $12,500 | `6975325f95150878eafe8c7b` |
-| Vacation Fund | Savings | $3,200 | `6975325f95150878eafe8c7c` |
-| Cash Back Rewards | Credit Card | $1,850 (debt) | `6975325f95150878eafe8c7d` |
+| Account | Type | Balance | Notes |
+|---------|------|---------|-------|
+| Everyday Checking | Checking | $2,400 | Median American has ~$2,500 |
+| Savings Account | Savings | $4,800 | Average savings ~$5,000 |
+| Rewards Card | Credit Card | $5,700 (debt) | Average CC debt ~$6,000 |
 
-**Total Liquid Assets:** $20,550 (Checking + Savings)
-**Total Credit Debt:** $1,850
+**Summary:**
+- Total Liquid Assets: $7,200
+- Total Debt: $28,200 (CC + auto loan)
+- **Net Worth: -$21,000** (typical for average American with car loan)
 
 ## Income
 
 | Source | Amount | Frequency |
 |--------|--------|-----------|
-| Salary (Direct Deposit) | $3,200 | Bi-weekly (1st & 15th) |
-| Freelance Consulting | ~$500 | Variable (~30% of months) |
-| Venmo/Zelle (bill splits) | ~$75 | Variable (~50% of months) |
+| Salary (Direct Deposit) | $1,834 | Bi-weekly (1st & 15th) |
+| Side Income (occasional) | ~$200 | ~20% of months |
 
-**Estimated Monthly Income:** ~$6,400-$6,600
+**Take-Home Monthly Income:** ~$3,668
+
+This represents a $56,000/year gross salary with ~$44,000 take-home after taxes.
 
 ## Recurring Bills
 
 | Payee | Amount | Due Date |
 |-------|--------|----------|
-| Landlord - Rent | $2,200 | 1st |
-| Geico (Car Insurance) | $125 | 1st |
-| National Grid (Electric) | $95 | 12th |
-| Eversource (Gas/Heat) | $65 | 15th |
-| Xfinity (Internet) | $89 | 8th |
+| Property Management LLC (Rent) | $1,450 | 1st |
+| State Farm (Car Insurance) | $145 | 15th |
+| Electric Company | $115 | 10th |
+| Gas Utility | $70 | 12th |
+| Spectrum (Internet) | $65 | 8th |
 | Verizon Wireless (Phone) | $85 | 18th |
-| Netflix | $15 | 10th |
-| Spotify | $11 | 14th |
-| iCloud Storage | $3 | 5th |
-| New York Times | $17 | 22nd |
+| Netflix | $15 | 5th |
+| Spotify | $11 | 7th |
+| Planet Fitness | $35 | 1st |
 
-**Total Monthly Bills:** $2,705
+**Total Monthly Bills:** $1,991
 
-## Loans
+## Auto Loan
 
-| Type | Amount | Monthly Payment | Description |
-|------|--------|-----------------|-------------|
-| Auto Loan | $18,500 | $385 | 2023 Honda Accord |
-| Student Loan | $24,000 | $280 | Federal Student Loan |
+| Field | Value |
+|-------|-------|
+| Type | Auto Loan |
+| Balance | $22,500 |
+| Monthly Payment | $485 |
+| Description | 2021 Toyota Camry |
+| Credit Score | 680 (average American) |
 
-**Total Loan Debt:** $42,500
-**Total Monthly Loan Payments:** $665
-
-## Merchants (34 total)
+## Merchants (27 total)
 
 ### Groceries
-- Whole Foods Market
-- Trader Joe's
-- Stop & Shop
+- Walmart Grocery
+- Kroger
+- Aldi
 - Costco
 
-### Dining & Food
-- Chipotle
-- Starbucks
-- Sweetgreen
-- Local Restaurant
+### Dining & Fast Food
+- McDonald's
+- Chick-fil-A
+- Taco Bell
+- Applebee's
+- Local Pizza
 - DoorDash
-- Uber Eats
+- Starbucks
+
+### Gas Stations
+- Shell
+- Exxon
+- BP
 
 ### Transportation
-- Shell Gas Station
-- Exxon
 - Uber
-- Lyft
-- MBTA
 
 ### Shopping
 - Amazon
-- Target
 - Walmart
-- Best Buy
-- Home Depot
-- TJ Maxx
+- Target
+- Dollar General
+- T.J. Maxx
 
 ### Entertainment
 - Netflix
-- Spotify
-- HBO Max
 - AMC Theatres
-- Ticketmaster
+- Spotify
 
-### Health & Fitness
-- Planet Fitness
+### Health
 - CVS Pharmacy
 - Walgreens
+- Planet Fitness
 
-### Travel
-- Delta Airlines
-- Airbnb
-- Marriott Hotels
-
-### Personal Care
-- Supercuts
-- Dry Cleaner
+### Personal
+- Great Clips
 
 ## Spending Patterns (Monthly Averages)
 
-| Category | Average | Std Dev | Frequency |
-|----------|---------|---------|-----------|
-| Groceries | $500 | $100 | 8x/month |
-| Dining | $350 | $120 | 12x/month |
-| Gas | $180 | $40 | 4x/month |
-| Transport | $100 | $50 | 6x/month |
-| Shopping | $250 | $200 | 4x/month |
-| Entertainment | $80 | $40 | 3x/month |
-| Health | $120 | $60 | 2x/month |
-| Travel | $150 | $300 | 0.5x/month |
-| Personal | $60 | $30 | 1x/month |
+| Category | Average | Notes |
+|----------|---------|-------|
+| Groceries | $380 | National average |
+| Dining | $280 | Americans spend ~$250-300/mo eating out |
+| Gas | $160 | Average gas spending |
+| Transport | $40 | Occasional rideshare |
+| Shopping | $180 | Discretionary purchases |
+| Entertainment | $60 | Movies, events |
+| Health | $90 | Pharmacy, gym extras |
+| Personal | $40 | Haircuts, etc |
 
-**Estimated Monthly Spending:** ~$1,790 (variable purchases only)
+**Total Variable Spending:** ~$1,230/mo
 
-## Seasonal Multipliers
-
-Spending varies by month:
+## Seasonal Spending Multipliers
 
 | Month | Multiplier | Reason |
 |-------|------------|--------|
-| January | 0.9x | Post-holiday recovery |
-| February | 0.85x | Low spending |
-| March | 0.95x | Normal |
-| April | 1.0x | Normal |
+| January | 0.85x | Post-holiday recovery |
+| February | 0.80x | Lowest spending month |
+| March | 0.90x | Normal |
+| April | 0.95x | Tax refund spending |
 | May | 1.0x | Normal |
-| June | 1.1x | Summer activities |
-| July | 1.15x | Vacation season |
-| August | 1.1x | Back to school |
+| June | 1.05x | Summer starts |
+| July | 1.10x | Vacation season |
+| August | 1.05x | Back to school |
 | September | 0.95x | Normal |
 | October | 1.0x | Normal |
-| November | 1.2x | Black Friday |
-| December | 1.4x | Holiday shopping |
+| November | 1.15x | Black Friday |
+| December | 1.30x | Holiday shopping |
+
+## Monthly Cash Flow Summary
+
+```
+INCOME
+├── Salary (bi-weekly):    $3,668
+├── Side Income (rare):    ~$40 avg
+└── TOTAL:                 ~$3,700
+
+FIXED EXPENSES
+├── Rent:                  $1,450
+├── Utilities:             $185
+├── Insurance:             $145
+├── Phone:                 $85
+├── Subscriptions:         $61
+├── Gym:                   $35
+└── SUBTOTAL:              $1,991
+
+DEBT PAYMENTS
+└── Auto Loan:             $485
+
+VARIABLE SPENDING
+├── Groceries:             $380
+├── Dining:                $280
+├── Gas:                   $160
+├── Shopping:              $180
+├── Other:                 $230
+└── SUBTOTAL:              ~$1,230
+
+TOTAL EXPENSES:            ~$3,706
+
+NET CASH FLOW:             ~$-6 to -$150/mo
+```
+
+**Key Insight:** This profile represents an American living paycheck-to-paycheck, with essentially zero monthly savings. This is representative of ~60% of Americans.
 
 ## Transaction History
 
 | Metric | Value |
 |--------|-------|
 | **Duration** | 12 months |
-| **Total Transactions** | 541 |
-| **Total Deposits** | ~$79,938 |
-| **Total Purchases** | ~$21,076 |
-
-## Monthly Cash Flow Summary
-
-```
-INCOME
-├── Salary:           $6,400
-├── Side Income:      ~$150 (avg)
-└── TOTAL:            ~$6,550
-
-EXPENSES
-├── Bills:            $2,705
-├── Loan Payments:    $665
-├── Variable Spend:   ~$1,790
-└── TOTAL:            ~$5,160
-
-SAVINGS
-├── Emergency Fund:   ~$600/mo
-├── Vacation Fund:    ~$150/mo
-└── TOTAL:            ~$750/mo
-
-NET CASH FLOW:        ~$640/mo (buffer)
-```
+| **Total Transactions** | 341 |
+| **Total Deposits** | $44,878 |
+| **Total Purchases** | $15,902 |
 
 ## API Endpoints
 
-To fetch this data:
-
 ```bash
-# Get all accounts
-curl "http://api.nessieisreal.com/customers/6975325e95150878eafe8c79/accounts?key=API_KEY"
+# Get customer
+curl "http://api.nessieisreal.com/customers/697541cf95150878eafea4ff?key=API_KEY"
 
-# Get purchases
-curl "http://api.nessieisreal.com/accounts/6975325e95150878eafe8c7a/purchases?key=API_KEY"
+# Get accounts
+curl "http://api.nessieisreal.com/customers/697541cf95150878eafea4ff/accounts?key=API_KEY"
+
+# Get purchases (use checking account ID)
+curl "http://api.nessieisreal.com/accounts/{checking_id}/purchases?key=API_KEY"
 
 # Get deposits
-curl "http://api.nessieisreal.com/accounts/6975325e95150878eafe8c7a/deposits?key=API_KEY"
+curl "http://api.nessieisreal.com/accounts/{checking_id}/deposits?key=API_KEY"
 
 # Get bills
-curl "http://api.nessieisreal.com/accounts/6975325e95150878eafe8c7a/bills?key=API_KEY"
+curl "http://api.nessieisreal.com/accounts/{checking_id}/bills?key=API_KEY"
 
 # Get loans
-curl "http://api.nessieisreal.com/accounts/6975325e95150878eafe8c7a/loans?key=API_KEY"
+curl "http://api.nessieisreal.com/accounts/{checking_id}/loans?key=API_KEY"
 ```
 
-## Code Reference
+## Why This Profile?
 
-- **Seed Script:** `scripts/seed-nessie.ts`
-- **Customer ID Constant:** `apps/api/src/services/nessieService.ts` line 7
-- **Financial Profile Endpoint:** `apps/api/src/routes/simulation.ts`
+This seed data was designed to represent the **median American worker**:
+
+1. **Negative net worth** - Most Americans have more debt than savings
+2. **Living paycheck-to-paycheck** - ~60% of Americans can't cover a $1,000 emergency
+3. **Car loan debt** - Average American has $23K in auto loans
+4. **Credit card balance** - Average American carries $6K in CC debt
+5. **Low savings** - Median savings is under $5,000
+6. **Rent-burdened** - Housing takes 40%+ of income
+
+This creates a realistic scenario for the Monte Carlo simulation where:
+- Goals are challenging but not impossible
+- Small changes in spending have significant impact
+- The user can see the value of financial planning

@@ -1,8 +1,12 @@
 /**
- * Nessie API Data Seeder
+ * Nessie API Data Seeder - Average American Profile
  *
- * Creates a comprehensive demo user with realistic financial data.
- * Simulates 12 months of banking history for a working professional.
+ * Creates a realistic demo user representing the median American worker.
+ * Based on 2024 data:
+ * - Median individual income: ~$56,000/year
+ * - Average savings: ~$5,000
+ * - Average credit card debt: ~$6,000
+ * - Average auto loan: ~$23,000
  *
  * Run with: npm run seed
  */
@@ -27,86 +31,109 @@ async function apiCall(
   return response.json()
 }
 
-// Comprehensive merchant list with realistic categories
+// ============================================================
+// CONFIGURATION - Based on Average American Financial Data
+// ============================================================
+
+// Income (after taxes) - $56K salary = ~$44K take-home = $3,667/month
+const BIWEEKLY_SALARY = 1834 // $3,668/month take-home
+const MONTHLY_INCOME = BIWEEKLY_SALARY * 2
+
+// Account balances (median American)
+const CHECKING_BALANCE = 2400    // Median American has ~$2,500
+const SAVINGS_BALANCE = 4800     // Average savings ~$5,000
+const CREDIT_CARD_BALANCE = 5700 // Average CC debt ~$6,000
+
+// Auto loan (average American)
+const AUTO_LOAN_BALANCE = 22500  // Average auto loan ~$23,000
+const AUTO_LOAN_PAYMENT = 485    // ~5% APR, 60 months
+
+// Monthly bills breakdown (national averages)
+const MONTHLY_BILLS = {
+  rent: 1450,           // National average for 1BR apartment
+  carInsurance: 145,    // Average auto insurance
+  electric: 115,        // Average electric bill
+  gas: 70,              // Average gas/heat
+  internet: 65,         // Average broadband
+  phone: 85,            // Average cell phone
+  netflix: 15,
+  spotify: 11,
+  gym: 35,
+}
+const TOTAL_MONTHLY_BILLS = Object.values(MONTHLY_BILLS).reduce((a, b) => a + b, 0)
+
+// Merchants
 const MERCHANTS = [
-  // Groceries
-  { name: 'Whole Foods Market', category: 'Groceries' },
-  { name: 'Trader Joe\'s', category: 'Groceries' },
-  { name: 'Stop & Shop', category: 'Groceries' },
+  // Groceries - where average Americans actually shop
+  { name: 'Walmart Grocery', category: 'Groceries' },
+  { name: 'Kroger', category: 'Groceries' },
+  { name: 'Aldi', category: 'Groceries' },
   { name: 'Costco', category: 'Groceries' },
 
-  // Dining & Food
-  { name: 'Chipotle', category: 'Dining' },
-  { name: 'Starbucks', category: 'Dining' },
-  { name: 'Sweetgreen', category: 'Dining' },
-  { name: 'Local Restaurant', category: 'Dining' },
+  // Fast food & dining (average American eats out 4-5x/week)
+  { name: 'McDonald\'s', category: 'Dining' },
+  { name: 'Chick-fil-A', category: 'Dining' },
+  { name: 'Taco Bell', category: 'Dining' },
+  { name: 'Applebee\'s', category: 'Dining' },
+  { name: 'Local Pizza', category: 'Dining' },
   { name: 'DoorDash', category: 'Dining' },
-  { name: 'Uber Eats', category: 'Dining' },
+  { name: 'Starbucks', category: 'Dining' },
+
+  // Gas stations
+  { name: 'Shell', category: 'Gas' },
+  { name: 'Exxon', category: 'Gas' },
+  { name: 'BP', category: 'Gas' },
 
   // Transportation
-  { name: 'Shell Gas Station', category: 'Gas' },
-  { name: 'Exxon', category: 'Gas' },
   { name: 'Uber', category: 'Transport' },
-  { name: 'Lyft', category: 'Transport' },
-  { name: 'MBTA', category: 'Transport' },
 
   // Shopping
   { name: 'Amazon', category: 'Shopping' },
-  { name: 'Target', category: 'Shopping' },
   { name: 'Walmart', category: 'Shopping' },
-  { name: 'Best Buy', category: 'Shopping' },
-  { name: 'Home Depot', category: 'Shopping' },
-  { name: 'TJ Maxx', category: 'Shopping' },
+  { name: 'Target', category: 'Shopping' },
+  { name: 'Dollar General', category: 'Shopping' },
+  { name: 'T.J. Maxx', category: 'Shopping' },
 
-  // Entertainment & Subscriptions
+  // Entertainment
   { name: 'Netflix', category: 'Entertainment' },
-  { name: 'Spotify', category: 'Entertainment' },
-  { name: 'HBO Max', category: 'Entertainment' },
   { name: 'AMC Theatres', category: 'Entertainment' },
-  { name: 'Ticketmaster', category: 'Entertainment' },
+  { name: 'Spotify', category: 'Entertainment' },
 
-  // Health & Fitness
-  { name: 'Planet Fitness', category: 'Health' },
+  // Health
   { name: 'CVS Pharmacy', category: 'Health' },
   { name: 'Walgreens', category: 'Health' },
+  { name: 'Planet Fitness', category: 'Health' },
 
-  // Travel
-  { name: 'Delta Airlines', category: 'Travel' },
-  { name: 'Airbnb', category: 'Travel' },
-  { name: 'Marriott Hotels', category: 'Travel' },
-
-  // Personal Care
-  { name: 'Supercuts', category: 'Personal' },
-  { name: 'Dry Cleaner', category: 'Personal' },
+  // Personal
+  { name: 'Great Clips', category: 'Personal' },
 ]
 
-// Realistic monthly spending patterns
+// Spending patterns (monthly totals, more conservative)
 const SPENDING_PATTERNS: Record<string, { mean: number; std: number; frequency: number }> = {
-  Groceries: { mean: 500, std: 100, frequency: 8 },      // Weekly shopping
-  Dining: { mean: 350, std: 120, frequency: 12 },        // Multiple times per week
-  Gas: { mean: 180, std: 40, frequency: 4 },             // Weekly fill-up
-  Transport: { mean: 100, std: 50, frequency: 6 },       // Occasional rideshare
-  Shopping: { mean: 250, std: 200, frequency: 4 },       // Variable
-  Entertainment: { mean: 80, std: 40, frequency: 3 },    // Subscriptions + outings
-  Health: { mean: 120, std: 60, frequency: 2 },          // Gym + pharmacy
-  Travel: { mean: 150, std: 300, frequency: 0.5 },       // Occasional trips
-  Personal: { mean: 60, std: 30, frequency: 1 },         // Monthly
+  Groceries: { mean: 380, std: 80, frequency: 6 },       // $380/mo average
+  Dining: { mean: 280, std: 100, frequency: 10 },        // Americans spend ~$250-300/mo eating out
+  Gas: { mean: 160, std: 35, frequency: 4 },             // ~$160/mo on gas
+  Transport: { mean: 40, std: 30, frequency: 1 },        // Occasional rideshare
+  Shopping: { mean: 180, std: 120, frequency: 3 },       // $180/mo discretionary
+  Entertainment: { mean: 60, std: 30, frequency: 2 },    // Movies, events
+  Health: { mean: 90, std: 50, frequency: 2 },           // Pharmacy, gym
+  Personal: { mean: 40, std: 20, frequency: 1 },         // Haircuts, etc
 }
 
 // Seasonal spending multipliers (index 0 = January)
 const SEASONAL_MULTIPLIERS = [
-  0.9,  // Jan - post-holiday recovery
-  0.85, // Feb
-  0.95, // Mar
-  1.0,  // Apr
-  1.0,  // May
-  1.1,  // Jun - summer activities
-  1.15, // Jul - vacation season
-  1.1,  // Aug - back to school
-  0.95, // Sep
-  1.0,  // Oct
-  1.2,  // Nov - Black Friday
-  1.4,  // Dec - Holiday shopping
+  0.85,  // Jan - recovering from holidays
+  0.80,  // Feb - lowest spending month
+  0.90,  // Mar
+  0.95,  // Apr - tax refund spending
+  1.0,   // May
+  1.05,  // Jun - summer starts
+  1.10,  // Jul - vacation season
+  1.05,  // Aug - back to school
+  0.95,  // Sep
+  1.0,   // Oct
+  1.15,  // Nov - Black Friday
+  1.30,  // Dec - Holiday shopping
 ]
 
 function randomNormal(mean: number, std: number): number {
@@ -131,20 +158,23 @@ function randomDay(month: Date, excludeWeekends = false): Date {
 }
 
 async function seedData() {
-  console.log('🚀 Starting comprehensive Nessie data seeding...\n')
-  console.log('This will create a realistic 12-month financial history.\n')
+  console.log('═'.repeat(60))
+  console.log('🚀 NESSIE DATA SEEDER - Average American Profile')
+  console.log('═'.repeat(60))
+  console.log('\nCreating realistic 12-month financial history...\n')
 
   // 1. Create customer
-  console.log('📋 Creating customer profile...')
+  console.log('📋 CREATING CUSTOMER')
+  console.log('─'.repeat(40))
   const customerResponse = await apiCall('POST', '/customers', {
-    first_name: 'Alex',
-    last_name: 'Morgan',
+    first_name: 'Jordan',
+    last_name: 'Smith',
     address: {
-      street_number: '245',
-      street_name: 'Commonwealth Avenue',
-      city: 'Boston',
-      state: 'MA',
-      zip: '02116',
+      street_number: '847',
+      street_name: 'Oak Street',
+      city: 'Columbus',
+      state: 'OH',
+      zip: '43215',
     },
   })
 
@@ -154,55 +184,46 @@ async function seedData() {
   }
 
   const customerId = customerResponse.objectCreated._id
-  console.log(`✅ Customer created: ${customerId}`)
-  console.log('   Name: Alex Morgan')
-  console.log('   Location: Boston, MA\n')
+  console.log(`   Customer ID: ${customerId}`)
+  console.log('   Name: Jordan Smith')
+  console.log('   Location: Columbus, OH (median cost of living)\n')
 
   // 2. Create accounts
-  console.log('🏦 Creating bank accounts...')
+  console.log('🏦 CREATING ACCOUNTS')
+  console.log('─'.repeat(40))
 
   // Primary Checking
   const checkingResponse = await apiCall('POST', `/customers/${customerId}/accounts`, {
     type: 'Checking',
-    nickname: 'Primary Checking',
+    nickname: 'Everyday Checking',
     rewards: 0,
-    balance: 4850,
+    balance: CHECKING_BALANCE,
   })
   const checkingId = checkingResponse.objectCreated._id
-  console.log(`✅ Checking Account: $4,850`)
+  console.log(`   ✓ Checking: $${CHECKING_BALANCE.toLocaleString()}`)
 
-  // High-Yield Savings
+  // Savings
   const savingsResponse = await apiCall('POST', `/customers/${customerId}/accounts`, {
     type: 'Savings',
-    nickname: 'Emergency Fund',
+    nickname: 'Savings Account',
     rewards: 0,
-    balance: 12500,
+    balance: SAVINGS_BALANCE,
   })
-  const savingsId = savingsResponse.objectCreated._id
-  console.log(`✅ Savings Account: $12,500`)
-
-  // Vacation Fund
-  const vacationResponse = await apiCall('POST', `/customers/${customerId}/accounts`, {
-    type: 'Savings',
-    nickname: 'Vacation Fund',
-    rewards: 0,
-    balance: 3200,
-  })
-  const vacationId = vacationResponse.objectCreated._id
-  console.log(`✅ Vacation Fund: $3,200`)
+  console.log(`   ✓ Savings: $${SAVINGS_BALANCE.toLocaleString()}`)
 
   // Credit Card
   const creditResponse = await apiCall('POST', `/customers/${customerId}/accounts`, {
     type: 'Credit Card',
-    nickname: 'Cash Back Rewards',
-    rewards: 15000, // $150 in rewards points
-    balance: 1850,
+    nickname: 'Rewards Card',
+    rewards: 8500,
+    balance: CREDIT_CARD_BALANCE,
   })
-  const creditId = creditResponse.objectCreated._id
-  console.log(`✅ Credit Card: $1,850 balance (15,000 reward points)\n`)
+  console.log(`   ✓ Credit Card: $${CREDIT_CARD_BALANCE.toLocaleString()} balance`)
+  console.log('')
 
   // 3. Create merchants
-  console.log('🏪 Creating merchants...')
+  console.log('🏪 CREATING MERCHANTS')
+  console.log('─'.repeat(40))
   const merchantIds: Record<string, string> = {}
   const merchantCategories: Record<string, string> = {}
 
@@ -212,10 +233,10 @@ async function seedData() {
       category: merchant.category,
       address: {
         street_number: String(Math.floor(Math.random() * 999) + 1),
-        street_name: 'Commerce Street',
-        city: 'Boston',
-        state: 'MA',
-        zip: '02101',
+        street_name: 'Main Street',
+        city: 'Columbus',
+        state: 'OH',
+        zip: '43215',
       },
     })
 
@@ -224,10 +245,55 @@ async function seedData() {
       merchantCategories[merchant.name] = merchant.category
     }
   }
-  console.log(`✅ Created ${Object.keys(merchantIds).length} merchants\n`)
+  console.log(`   ✓ Created ${Object.keys(merchantIds).length} merchants\n`)
 
-  // 4. Create 12 months of transaction history
-  console.log('💳 Creating 12 months of transactions...')
+  // 4. Create recurring bills
+  console.log('📄 CREATING RECURRING BILLS')
+  console.log('─'.repeat(40))
+
+  const billsData = [
+    { payee: 'Property Management LLC', amount: MONTHLY_BILLS.rent, day: 1, name: 'Rent' },
+    { payee: 'State Farm Insurance', amount: MONTHLY_BILLS.carInsurance, day: 15, name: 'Car Insurance' },
+    { payee: 'Electric Company', amount: MONTHLY_BILLS.electric, day: 10, name: 'Electric' },
+    { payee: 'Gas Utility', amount: MONTHLY_BILLS.gas, day: 12, name: 'Gas/Heat' },
+    { payee: 'Spectrum', amount: MONTHLY_BILLS.internet, day: 8, name: 'Internet' },
+    { payee: 'Verizon Wireless', amount: MONTHLY_BILLS.phone, day: 18, name: 'Phone' },
+    { payee: 'Netflix', amount: MONTHLY_BILLS.netflix, day: 5, name: 'Netflix' },
+    { payee: 'Spotify', amount: MONTHLY_BILLS.spotify, day: 7, name: 'Spotify' },
+    { payee: 'Planet Fitness', amount: MONTHLY_BILLS.gym, day: 1, name: 'Gym' },
+  ]
+
+  for (const bill of billsData) {
+    await apiCall('POST', `/accounts/${checkingId}/bills`, {
+      status: 'recurring',
+      payee: bill.payee,
+      nickname: bill.name,
+      payment_date: formatDate(new Date(2025, 0, bill.day)),
+      recurring_date: bill.day,
+      payment_amount: bill.amount,
+    })
+    console.log(`   ✓ ${bill.name}: $${bill.amount}/mo`)
+  }
+  console.log(`   ─────────────────────`)
+  console.log(`   Total Bills: $${TOTAL_MONTHLY_BILLS}/mo\n`)
+
+  // 5. Create auto loan
+  console.log('🚗 CREATING AUTO LOAN')
+  console.log('─'.repeat(40))
+  await apiCall('POST', `/accounts/${checkingId}/loans`, {
+    type: 'auto',
+    status: 'approved',
+    credit_score: 680, // Average American credit score
+    monthly_payment: AUTO_LOAN_PAYMENT,
+    amount: AUTO_LOAN_BALANCE,
+    description: 'Auto Loan - 2021 Toyota Camry',
+  })
+  console.log(`   ✓ Auto Loan: $${AUTO_LOAN_BALANCE.toLocaleString()}`)
+  console.log(`   ✓ Monthly Payment: $${AUTO_LOAN_PAYMENT}\n`)
+
+  // 6. Create 12 months of transaction history
+  console.log('💳 CREATING 12 MONTHS OF TRANSACTIONS')
+  console.log('─'.repeat(40))
 
   const today = new Date()
   let totalTransactions = 0
@@ -238,218 +304,125 @@ async function seedData() {
     const monthStart = new Date(today.getFullYear(), today.getMonth() - monthOffset, 1)
     const monthIndex = monthStart.getMonth()
     const seasonalMultiplier = SEASONAL_MULTIPLIERS[monthIndex]
+    const monthName = monthStart.toLocaleString('default', { month: 'short' })
+
+    let monthDeposits = 0
+    let monthPurchases = 0
 
     // === INCOME ===
 
-    // Primary salary (1st and 15th - bi-weekly)
-    const baseSalary = 3200
+    // Bi-weekly salary (1st and 15th)
     for (const payDay of [1, 15]) {
       await apiCall('POST', `/accounts/${checkingId}/deposits`, {
         medium: 'balance',
         transaction_date: formatDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), payDay)),
-        amount: baseSalary,
+        amount: BIWEEKLY_SALARY,
         description: 'Direct Deposit - Employer',
+        status: 'completed',
       })
-      totalDeposits += baseSalary
+      monthDeposits += BIWEEKLY_SALARY
       totalTransactions++
     }
 
-    // Occasional side income (freelance - ~30% of months)
-    if (Math.random() < 0.3) {
-      const sideIncome = randomNormal(500, 200)
+    // Occasional side income (~20% of months - gig work, selling stuff)
+    if (Math.random() < 0.2) {
+      const sideIncome = randomNormal(200, 100)
       await apiCall('POST', `/accounts/${checkingId}/deposits`, {
         medium: 'balance',
         transaction_date: formatDate(randomDay(monthStart)),
         amount: sideIncome,
-        description: 'Freelance Payment - Consulting',
+        description: 'Venmo Transfer',
+        status: 'completed',
       })
-      totalDeposits += sideIncome
+      monthDeposits += sideIncome
       totalTransactions++
     }
 
-    // Venmo/Zelle receipts (splitting bills with friends)
-    if (Math.random() < 0.5) {
-      const p2pAmount = randomNormal(75, 30)
-      await apiCall('POST', `/accounts/${checkingId}/deposits`, {
-        medium: 'balance',
-        transaction_date: formatDate(randomDay(monthStart)),
-        amount: p2pAmount,
-        description: 'Venmo Transfer - Bill Split',
-      })
-      totalDeposits += p2pAmount
-      totalTransactions++
-    }
+    // === PURCHASES ===
+    const merchantNames = Object.keys(merchantIds)
 
-    // === SPENDING ===
+    for (const [category, pattern] of Object.entries(SPENDING_PATTERNS)) {
+      const categoryMerchants = merchantNames.filter(m => merchantCategories[m] === category)
+      if (categoryMerchants.length === 0) continue
 
-    // Create purchases by merchant
-    for (const [merchantName, merchantId] of Object.entries(merchantIds)) {
-      const category = merchantCategories[merchantName]
-      const pattern = SPENDING_PATTERNS[category]
-      if (!pattern) continue
+      // Adjust frequency by season
+      const adjustedFrequency = Math.round(pattern.frequency * seasonalMultiplier)
+      const adjustedMean = pattern.mean * seasonalMultiplier
 
-      // Determine number of transactions this month for this merchant
-      const numTransactions = Math.round(
-        (pattern.frequency / MERCHANTS.filter(m => m.category === category).length) *
-        (0.5 + Math.random())
-      )
+      for (let i = 0; i < adjustedFrequency; i++) {
+        const merchant = categoryMerchants[Math.floor(Math.random() * categoryMerchants.length)]
+        const perTransactionAmount = adjustedMean / pattern.frequency
+        const amount = randomNormal(perTransactionAmount, pattern.std / Math.sqrt(pattern.frequency))
 
-      for (let i = 0; i < numTransactions; i++) {
-        const baseAmount = randomNormal(pattern.mean / pattern.frequency, pattern.std / pattern.frequency)
-        const amount = Math.round(baseAmount * seasonalMultiplier)
-
-        if (amount < 3) continue
-
-        const transactionDate = randomDay(monthStart)
-
-        await apiCall('POST', `/accounts/${checkingId}/purchases`, {
-          merchant_id: merchantId,
-          medium: 'balance',
-          purchase_date: formatDate(transactionDate),
-          amount,
-          description: `Purchase at ${merchantName}`,
-        })
-        totalPurchases += amount
-        totalTransactions++
+        if (amount > 0) {
+          await apiCall('POST', `/accounts/${checkingId}/purchases`, {
+            merchant_id: merchantIds[merchant],
+            medium: 'balance',
+            purchase_date: formatDate(randomDay(monthStart)),
+            amount: amount,
+            description: merchant,
+            status: 'completed',
+          })
+          monthPurchases += amount
+          totalTransactions++
+        }
       }
     }
 
-    // === TRANSFERS ===
+    totalDeposits += monthDeposits
+    totalPurchases += monthPurchases
 
-    // Monthly savings transfer (around the 5th)
-    const savingsTransfer = randomNormal(600, 100)
-    await apiCall('POST', `/accounts/${checkingId}/transfers`, {
-      medium: 'balance',
-      payee_id: savingsId,
-      amount: savingsTransfer,
-      transaction_date: formatDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 5)),
-      description: 'Monthly savings transfer',
-    })
-    totalTransactions++
-
-    // Vacation fund (around the 20th)
-    const vacationTransfer = randomNormal(150, 50)
-    await apiCall('POST', `/accounts/${checkingId}/transfers`, {
-      medium: 'balance',
-      payee_id: vacationId,
-      amount: vacationTransfer,
-      transaction_date: formatDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 20)),
-      description: 'Vacation fund transfer',
-    })
-    totalTransactions++
-
-    // Credit card payment (around the 25th)
-    const ccPayment = randomNormal(1200, 300)
-    await apiCall('POST', `/accounts/${checkingId}/transfers`, {
-      medium: 'balance',
-      payee_id: creditId,
-      amount: ccPayment,
-      transaction_date: formatDate(new Date(monthStart.getFullYear(), monthStart.getMonth(), 25)),
-      description: 'Credit card payment',
-    })
-    totalTransactions++
-
-    console.log(`   Month ${12 - monthOffset}/12: ${monthStart.toLocaleString('default', { month: 'short', year: 'numeric' })}`)
+    const monthNet = monthDeposits - monthPurchases - TOTAL_MONTHLY_BILLS - AUTO_LOAN_PAYMENT
+    console.log(`   ${monthName} ${monthStart.getFullYear()}: +$${monthDeposits.toLocaleString()} / -$${(monthPurchases + TOTAL_MONTHLY_BILLS + AUTO_LOAN_PAYMENT).toLocaleString()} (net: ${monthNet >= 0 ? '+' : ''}$${monthNet.toLocaleString()})`)
   }
 
-  console.log(`\n✅ Created ${totalTransactions} transactions`)
-  console.log(`   Total deposits: $${totalDeposits.toLocaleString()}`)
-  console.log(`   Total purchases: $${totalPurchases.toLocaleString()}\n`)
-
-  // 5. Create recurring bills
-  console.log('📄 Creating recurring bills...')
-
-  const bills = [
-    { payee: 'Landlord - Rent', amount: 2200, day: 1, nickname: 'Rent' },
-    { payee: 'National Grid', amount: 95, day: 12, nickname: 'Electric' },
-    { payee: 'Eversource Gas', amount: 65, day: 15, nickname: 'Gas/Heat' },
-    { payee: 'Xfinity', amount: 89, day: 8, nickname: 'Internet' },
-    { payee: 'Verizon Wireless', amount: 85, day: 18, nickname: 'Phone' },
-    { payee: 'Geico', amount: 125, day: 1, nickname: 'Car Insurance' },
-    { payee: 'Netflix', amount: 15, day: 10, nickname: 'Netflix' },
-    { payee: 'Spotify', amount: 11, day: 14, nickname: 'Spotify' },
-    { payee: 'iCloud Storage', amount: 3, day: 5, nickname: 'iCloud' },
-    { payee: 'New York Times', amount: 17, day: 22, nickname: 'News Subscription' },
-  ]
-
-  for (const bill of bills) {
-    await apiCall('POST', `/accounts/${checkingId}/bills`, {
-      status: 'recurring',
-      payee: bill.payee,
-      nickname: bill.nickname,
-      payment_date: formatDate(new Date(today.getFullYear(), today.getMonth(), bill.day)),
-      recurring_date: bill.day,
-      payment_amount: bill.amount,
-    })
-    console.log(`   ✅ ${bill.nickname}: $${bill.amount}/mo`)
-  }
-
-  const totalBills = bills.reduce((sum, b) => sum + b.amount, 0)
-  console.log(`\n   Total monthly bills: $${totalBills.toLocaleString()}\n`)
-
-  // 6. Create loans
-  console.log('💰 Creating loans...')
-
-  // Auto loan
-  await apiCall('POST', `/accounts/${checkingId}/loans`, {
-    type: 'auto',
-    status: 'approved',
-    credit_score: 745,
-    monthly_payment: 385,
-    amount: 18500,
-    description: 'Auto Loan - 2023 Honda Accord',
-  })
-  console.log('   ✅ Auto Loan: $18,500 @ $385/mo')
-
-  // Student loan
-  await apiCall('POST', `/accounts/${checkingId}/loans`, {
-    type: 'personal',
-    status: 'approved',
-    credit_score: 745,
-    monthly_payment: 280,
-    amount: 24000,
-    description: 'Student Loan - Federal',
-  })
-  console.log('   ✅ Student Loan: $24,000 @ $280/mo\n')
+  console.log('')
 
   // Summary
-  console.log('═'.repeat(55))
+  console.log('═'.repeat(60))
   console.log('🎉 SEEDING COMPLETE!')
-  console.log('═'.repeat(55))
+  console.log('═'.repeat(60))
+
+  const monthlyVariableSpending = Math.round(totalPurchases / 12)
+  const monthlyTotalExpenses = monthlyVariableSpending + TOTAL_MONTHLY_BILLS + AUTO_LOAN_PAYMENT
+  const monthlyCashFlow = MONTHLY_INCOME - monthlyTotalExpenses
+
   console.log(`
 📊 CUSTOMER PROFILE SUMMARY
 
 Customer ID: ${customerId}
-Name: Alex Morgan (Boston, MA)
+Name: Jordan Smith (Columbus, OH)
 
-💳 ACCOUNTS
-├── Checking:     $4,850   (ID: ${checkingId})
-├── Emergency:    $12,500  (ID: ${savingsId})
-├── Vacation:     $3,200   (ID: ${vacationId})
-└── Credit Card:  $1,850   (ID: ${creditId})
+💰 ACCOUNTS
+├── Checking:     $${CHECKING_BALANCE.toLocaleString()}
+├── Savings:      $${SAVINGS_BALANCE.toLocaleString()}
+└── Credit Card:  -$${CREDIT_CARD_BALANCE.toLocaleString()} (balance owed)
 
-💵 MONTHLY INCOME
-├── Salary:       $6,400 (bi-weekly deposits)
-├── Freelance:    ~$150 (variable)
-└── Total:        ~$6,550/mo
+Total Assets:     $${(CHECKING_BALANCE + SAVINGS_BALANCE).toLocaleString()}
+Total Debt:       $${(CREDIT_CARD_BALANCE + AUTO_LOAN_BALANCE).toLocaleString()}
+Net Worth:        $${(CHECKING_BALANCE + SAVINGS_BALANCE - CREDIT_CARD_BALANCE - AUTO_LOAN_BALANCE).toLocaleString()}
 
-📤 MONTHLY EXPENSES
-├── Bills:        $2,705 (rent, utilities, subscriptions)
-├── Loans:        $665 (auto + student)
-├── Spending:     ~$1,500 (groceries, dining, etc.)
-└── Savings:      ~$750 (emergency + vacation)
+📅 MONTHLY CASH FLOW
+├── Income:           $${MONTHLY_INCOME.toLocaleString()}
+├── Fixed Bills:      -$${TOTAL_MONTHLY_BILLS.toLocaleString()}
+├── Loan Payment:     -$${AUTO_LOAN_PAYMENT}
+├── Variable Spend:   -$${monthlyVariableSpending.toLocaleString()}
+├── ─────────────────
+└── Net Cash Flow:    ${monthlyCashFlow >= 0 ? '+' : ''}$${monthlyCashFlow.toLocaleString()}
 
-📈 TRANSACTION HISTORY
-├── Duration:     12 months
+📈 12-MONTH TOTALS
 ├── Transactions: ${totalTransactions}
-├── Merchants:    ${Object.keys(merchantIds).length}
-└── Categories:   ${Object.keys(SPENDING_PATTERNS).length}
+├── Deposits:     $${totalDeposits.toLocaleString()}
+└── Purchases:    $${totalPurchases.toLocaleString()}
 
-⚠️  UPDATE YOUR CODE:
-Add this customer ID to your .env or nessieService.ts:
-DEFAULT_CUSTOMER_ID = '${customerId}'
+═══════════════════════════════════════════════════════════
+
+To use this customer, copy this ID:
+${customerId}
+
+Or update DEFAULT_CUSTOMER_ID in:
+apps/api/src/services/nessieService.ts
 `)
 }
 
-// Run seeder
 seedData().catch(console.error)
