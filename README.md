@@ -62,10 +62,6 @@ source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
 cd ..
 
-# Copy environment variables
-cp .env.example .env
-# Edit .env with your API keys
-```
 
 ### Running Locally
 
