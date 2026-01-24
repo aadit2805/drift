@@ -3,8 +3,8 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'FutureCast - Monte Carlo Financial Simulation',
-  description: 'See 10,000 versions of your financial future. HPC-powered personal finance simulation.',
+  title: 'FutureCast',
+  description: 'Monte Carlo simulation for personal finance',
 }
 
 export default function RootLayout({
@@ -16,9 +16,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          <div className="min-h-screen texture-overlay">
-            {children}
-          </div>
+          {children}
         </Providers>
       </body>
     </html>

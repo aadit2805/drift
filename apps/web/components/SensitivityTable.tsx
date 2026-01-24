@@ -1,151 +1,116 @@
 'use client'
 
-import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import type { SensitivityAnalysis } from '@/types'
 
 interface SensitivityTableProps {
   baseProbability: number
+  sensitivityData?: SensitivityAnalysis | null
 }
 
-interface Scenario {
-  id: string
+interface ScenarioRow {
   label: string
   change: string
-  newProbability: number
+  newProb: number
   impact: number
 }
 
-export function SensitivityTable({ baseProbability }: SensitivityTableProps) {
-  // Mock sensitivity data - would come from API in production
-  const scenarios: Scenario[] = [
-    {
-      id: 'income-10',
-      label: 'Increase income by 10%',
-      change: '+$500/mo',
-      newProbability: 0.84,
-      impact: 0.11,
-    },
-    {
-      id: 'dining-20',
-      label: 'Reduce dining out by 20%',
-      change: '-$150/mo',
-      newProbability: 0.81,
-      impact: 0.08,
-    },
-    {
-      id: 'subscriptions',
-      label: 'Cancel streaming services',
-      change: '-$50/mo',
-      newProbability: 0.75,
-      impact: 0.02,
-    },
-    {
-      id: 'side-gig',
-      label: 'Add side gig income',
-      change: '+$800/mo',
-      newProbability: 0.91,
-      impact: 0.18,
-    },
-    {
-      id: 'spending-10',
-      label: 'Reduce all spending by 10%',
-      change: '-$300/mo',
-      newProbability: 0.86,
-      impact: 0.13,
-    },
-  ]
+export function SensitivityTable({ baseProbability, sensitivityData }: SensitivityTableProps) {
+  // Convert API sensitivity data to display format
+  const scenarios: ScenarioRow[] = sensitivityData?.sensitivities
+    ? Object.entries(sensitivityData.sensitivities).map(([param, data]) => {
+        // Format the parameter name for display
+        const labelMap: Record<string, string> = {
+          'income_plus_10': 'Increase income by 10%',
+          'income_minus_10': 'Decrease income by 10%',
+          'spending_minus_10': 'Reduce spending by 10%',
+          'spending_plus_10': 'Increase spending by 10%',
+          'timeline_plus_6mo': 'Extend timeline by 6 months',
+        }
 
-  // Sort by impact
-  const sortedScenarios = [...scenarios].sort((a, b) => b.impact - a.impact)
+        const changeMap: Record<string, string> = {
+          'income_plus_10': '+10% income',
+          'income_minus_10': '-10% income',
+          'spending_minus_10': '-10% spending',
+          'spending_plus_10': '+10% spending',
+          'timeline_plus_6mo': '+6 months',
+        }
+
+        return {
+          label: labelMap[param] || param.replace(/_/g, ' '),
+          change: changeMap[param] || `${data.delta > 0 ? '+' : ''}${Math.round(data.delta * 100)}%`,
+          newProb: data.newProbability,
+          impact: data.impact,
+        }
+      })
+      // Sort by impact (highest first)
+      .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
+      // Take top 5
+      .slice(0, 5)
+    : []
+
+  // If no API data, show a message
+  if (scenarios.length === 0) {
+    return (
+      <div className="text-center py-8 text-[var(--text-tertiary)]">
+        <p>Sensitivity analysis not available for this simulation.</p>
+        <p className="text-sm mt-2">Run a new simulation to generate what-if scenarios.</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10">
-      <table className="min-w-full">
-        <thead>
-          <tr className="border-b border-white/10">
-            <th className="px-6 py-4 text-left text-xs font-medium text-white/40 uppercase tracking-wider">
-              Scenario
-            </th>
-            <th className="px-6 py-4 text-left text-xs font-medium text-white/40 uppercase tracking-wider">
-              Change
-            </th>
-            <th className="px-6 py-4 text-left text-xs font-medium text-white/40 uppercase tracking-wider">
-              New Probability
-            </th>
-            <th className="px-6 py-4 text-left text-xs font-medium text-white/40 uppercase tracking-wider">
-              Impact
-            </th>
+    <table className="table">
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Change</th>
+          <th>Probability</th>
+          <th>Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr className="bg-[var(--bg-tertiary)]">
+          <td className="font-medium">Current plan</td>
+          <td className="text-[var(--text-tertiary)]">-</td>
+          <td className="font-medium tabular-nums">{Math.round(baseProbability * 100)}%</td>
+          <td className="text-[var(--text-tertiary)]">-</td>
+        </tr>
+        {scenarios.map((s) => {
+          const impactPositive = s.impact > 0
+          return (
+            <tr key={s.label}>
+              <td className="text-[var(--text-secondary)]">{s.label}</td>
+              <td>
+                <span className={s.impact > 0 ? 'text-[var(--success)]' : 'text-[var(--warning)]'}>
+                  {s.change}
+                </span>
+              </td>
+              <td className="font-medium tabular-nums">{Math.round(s.newProb * 100)}%</td>
+              <td>
+                <span className={`badge ${impactPositive ? 'badge-success' : 'badge-error'}`}>
+                  {impactPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {impactPositive ? '+' : ''}{Math.round(s.impact * 100)}%
+                </span>
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+      {sensitivityData?.recommendations && sensitivityData.recommendations.length > 0 && (
+        <tfoot>
+          <tr>
+            <td colSpan={4} className="pt-4">
+              <p className="text-sm font-medium mb-2">Recommendations</p>
+              <ul className="text-sm text-[var(--text-secondary)] space-y-1">
+                {sensitivityData.recommendations.map((rec, i) => (
+                  <li key={i}>• {rec}</li>
+                ))}
+              </ul>
+            </td>
           </tr>
-        </thead>
-        <tbody className="divide-y divide-white/5">
-          {/* Current baseline */}
-          <tr className="bg-indigo-500/10">
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                <span className="text-sm font-medium text-white">Current Plan (baseline)</span>
-              </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-white/40">
-              -
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <span className="text-xl font-bold gradient-text">
-                {Math.round(baseProbability * 100)}%
-              </span>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-white/30">
-              <Minus className="w-4 h-4" />
-            </td>
-          </tr>
-
-          {/* Scenarios */}
-          {sortedScenarios.map((scenario) => {
-            const isPositive = scenario.impact > 0
-            const impactPercent = Math.round(scenario.impact * 100)
-
-            return (
-              <tr key={scenario.id} className="hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-white/80">
-                  {scenario.label}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span
-                    className={`px-2 py-1 rounded-md text-xs font-medium ${
-                      scenario.change.startsWith('+')
-                        ? 'bg-green-500/10 text-green-400'
-                        : 'bg-orange-500/10 text-orange-400'
-                    }`}
-                  >
-                    {scenario.change}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-xl font-semibold text-white">
-                    {Math.round(scenario.newProbability * 100)}%
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${
-                      isPositive
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                    }`}
-                  >
-                    {isPositive ? (
-                      <TrendingUp className="w-3.5 h-3.5" />
-                    ) : (
-                      <TrendingDown className="w-3.5 h-3.5" />
-                    )}
-                    {isPositive ? '+' : ''}
-                    {impactPercent}%
-                  </span>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+        </tfoot>
+      )}
+    </table>
   )
 }

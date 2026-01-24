@@ -1,232 +1,289 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, Database, Brain, Cpu, BarChart3, Check } from 'lucide-react'
+import { Check, AlertCircle } from 'lucide-react'
+import { getFinancialProfile, parseGoal, runSimulation, runSensitivityAnalysis } from '@/lib/api'
+import type { SimulationRequest, SimulationResults, SensitivityAnalysis, FinancialProfile, ParsedGoal } from '@/types'
 
-interface SimulationStep {
-  id: string
-  label: string
-  description: string
-  icon: React.ReactNode
+interface StepStatus {
+  status: 'pending' | 'active' | 'done' | 'error'
+  message?: string
 }
 
 export default function SimulationPage() {
   const router = useRouter()
   const [progress, setProgress] = useState(0)
-  const [currentStep, setCurrentStep] = useState(0)
-  const [simulationsComplete, setSimulationsComplete] = useState(0)
-  const [workerProgress, setWorkerProgress] = useState([0, 0, 0, 0])
+  const [stepStatuses, setStepStatuses] = useState<StepStatus[]>([
+    { status: 'pending' },
+    { status: 'pending' },
+    { status: 'pending' },
+    { status: 'pending' },
+  ])
+  const [error, setError] = useState<string | null>(null)
+  const [simCount, setSimCount] = useState(0)
+  const hasStarted = useRef(false)
 
-  const steps: SimulationStep[] = [
-    {
-      id: 'fetch',
-      label: 'Fetching financial data',
-      description: 'Pulling your transaction history from Capital One',
-      icon: <Database className="w-5 h-5" />,
-    },
-    {
-      id: 'parse',
-      label: 'Analyzing your goal',
-      description: 'AI is parsing your goal into simulation parameters',
-      icon: <Brain className="w-5 h-5" />,
-    },
-    {
-      id: 'simulate',
-      label: 'Running Monte Carlo simulation',
-      description: 'Executing 10,000 parallel scenarios',
-      icon: <Cpu className="w-5 h-5" />,
-    },
-    {
-      id: 'analyze',
-      label: 'Computing statistics',
-      description: 'Calculating probabilities and percentiles',
-      icon: <BarChart3 className="w-5 h-5" />,
-    },
+  const steps = [
+    { label: 'Fetching financial data', desc: 'Nessie API' },
+    { label: 'Parsing goal', desc: 'LLM extraction' },
+    { label: 'Running Monte Carlo', desc: '10,000 scenarios' },
+    { label: 'Analyzing sensitivity', desc: 'What-if scenarios' },
   ]
 
-  useEffect(() => {
-    const stepDurations = [1500, 1200, 3500, 1000]
-    let totalElapsed = 0
-
-    stepDurations.forEach((duration, index) => {
-      setTimeout(() => {
-        setCurrentStep(index)
-      }, totalElapsed)
-
-      if (index === 2) {
-        const simInterval = setInterval(() => {
-          setSimulationsComplete((prev) => {
-            const next = prev + Math.floor(Math.random() * 400) + 200
-            return Math.min(next, 10000)
-          })
-          setWorkerProgress((prev) =>
-            prev.map((p) => Math.min(p + Math.floor(Math.random() * 3) + 1, 100))
-          )
-        }, 80)
-
-        setTimeout(() => {
-          clearInterval(simInterval)
-          setSimulationsComplete(10000)
-          setWorkerProgress([100, 100, 100, 100])
-        }, totalElapsed + duration)
-      }
-
-      totalElapsed += duration
+  const updateStep = (index: number, status: StepStatus['status'], message?: string) => {
+    setStepStatuses(prev => {
+      const updated = [...prev]
+      updated[index] = { status, message }
+      return updated
     })
+  }
 
-    setTimeout(() => {
-      setCurrentStep(4)
-      setTimeout(() => router.push('/results'), 600)
-    }, totalElapsed)
+  useEffect(() => {
+    if (hasStarted.current) return
+    hasStarted.current = true
 
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 1.2, 100))
-    }, 70)
+    const runFullSimulation = async () => {
+      try {
+        // Get user inputs from localStorage
+        const storedInputs = localStorage.getItem('userInputs')
+        if (!storedInputs) {
+          setError('No user inputs found. Please complete onboarding first.')
+          return
+        }
 
-    return () => clearInterval(progressInterval)
+        const userInputs = JSON.parse(storedInputs)
+        setProgress(5)
+
+        // Step 1: Fetch financial profile from Nessie
+        updateStep(0, 'active')
+        let financialProfile: FinancialProfile
+        try {
+          financialProfile = await getFinancialProfile()
+          updateStep(0, 'done')
+          setProgress(25)
+        } catch (err) {
+          console.error('Failed to fetch financial profile:', err)
+          // Use fallback values if Nessie API fails
+          financialProfile = {
+            liquidAssets: 5000,
+            creditDebt: 2000,
+            loanDebt: 0,
+            monthlyLoanPayments: 0,
+            monthlySpending: parseFloat(userInputs.monthlyIncome) * 0.7,
+            spendingByCategory: {},
+            spendingVolatility: 0.15,
+          }
+          updateStep(0, 'done', 'Using estimates')
+          setProgress(25)
+        }
+
+        // Step 2: Parse the goal using LLM
+        updateStep(1, 'active')
+        let parsedGoal: ParsedGoal
+        try {
+          parsedGoal = await parseGoal(userInputs.goal)
+          updateStep(1, 'done')
+          setProgress(40)
+        } catch (err) {
+          console.error('Failed to parse goal:', err)
+          setError('Failed to parse your goal. Please try again.')
+          updateStep(1, 'error')
+          return
+        }
+
+        // Step 3: Run Monte Carlo simulation
+        updateStep(2, 'active')
+        const simInterval = setInterval(() => {
+          setSimCount(prev => Math.min(prev + Math.floor(Math.random() * 400) + 200, 10000))
+        }, 100)
+
+        const simulationRequest: SimulationRequest = {
+          financialProfile,
+          userInputs: {
+            monthlyIncome: parseFloat(userInputs.monthlyIncome),
+            age: parseInt(userInputs.age),
+            riskTolerance: userInputs.riskTolerance,
+          },
+          goal: {
+            targetAmount: parsedGoal.targetAmount,
+            timelineMonths: parsedGoal.timelineMonths,
+            goalType: parsedGoal.goalType,
+          },
+          simulationParams: {
+            nSimulations: 10000,
+          },
+        }
+
+        let simulationResults: SimulationResults
+        try {
+          simulationResults = await runSimulation(simulationRequest)
+          clearInterval(simInterval)
+          setSimCount(10000)
+          updateStep(2, 'done')
+          setProgress(75)
+        } catch (err) {
+          clearInterval(simInterval)
+          console.error('Simulation failed:', err)
+          setError('Simulation failed. Please try again.')
+          updateStep(2, 'error')
+          return
+        }
+
+        // Step 4: Run sensitivity analysis
+        updateStep(3, 'active')
+        let sensitivityResults: SensitivityAnalysis | null = null
+        try {
+          sensitivityResults = await runSensitivityAnalysis(simulationRequest)
+          updateStep(3, 'done')
+          setProgress(100)
+        } catch (err) {
+          console.error('Sensitivity analysis failed:', err)
+          // Continue without sensitivity - not critical
+          updateStep(3, 'done', 'Skipped')
+          setProgress(100)
+        }
+
+        // Store results in localStorage
+        const resultsData = {
+          results: {
+            successProbability: simulationResults.successProbability,
+            medianOutcome: simulationResults.medianOutcome,
+            percentiles: simulationResults.percentiles,
+            goalAmount: parsedGoal.targetAmount,
+            timelineMonths: parsedGoal.timelineMonths,
+            mean: simulationResults.mean,
+            std: simulationResults.std,
+            worstCase: simulationResults.worstCase,
+            bestCase: simulationResults.bestCase,
+          },
+          sensitivity: sensitivityResults,
+          parsedGoal,
+          financialProfile,
+          timestamp: Date.now(),
+        }
+        localStorage.setItem('simulationResults', JSON.stringify(resultsData))
+
+        // Navigate to results after a brief pause
+        setTimeout(() => router.push('/results'), 500)
+      } catch (err) {
+        console.error('Simulation flow error:', err)
+        setError('An unexpected error occurred. Please try again.')
+      }
+    }
+
+    runFullSimulation()
   }, [router])
 
-  const getStepStatus = (index: number): 'pending' | 'running' | 'complete' => {
-    if (index < currentStep) return 'complete'
-    if (index === currentStep) return 'running'
-    return 'pending'
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="w-full max-w-lg">
+          <Link href="/" className="flex items-center gap-2 mb-12 justify-center">
+            <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+            <span className="font-medium">FutureCast</span>
+          </Link>
+
+          <div className="card p-6">
+            <div className="flex items-center gap-3 text-[var(--error)] mb-4">
+              <AlertCircle className="w-5 h-5" />
+              <span className="font-medium">Simulation Error</span>
+            </div>
+            <p className="text-[var(--text-secondary)] mb-6">{error}</p>
+            <div className="flex gap-3">
+              <Link href="/onboarding" className="btn btn-secondary flex-1 justify-center">
+                Start over
+              </Link>
+              <button
+                onClick={() => window.location.reload()}
+                className="btn btn-primary flex-1 justify-center"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
-      <div className="w-full max-w-2xl">
-        {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-12">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-lg font-semibold text-white">FutureCast</span>
+      <div className="w-full max-w-lg">
+        <Link href="/" className="flex items-center gap-2 mb-12 justify-center">
+          <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+          <span className="font-medium">FutureCast</span>
         </Link>
 
-        {/* Main Card */}
-        <div className="glass-card rounded-2xl p-8 glow">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Simulating Your Future
-            </h1>
-            <p className="text-white/50">
-              Running 10,000 possible financial outcomes
-            </p>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-10">
-            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-              <div
-                className="h-full progress-bar rounded-full transition-all duration-100"
-                style={{ width: `${progress}%` }}
-              />
+        <div className="card p-6">
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-[var(--text-secondary)]">Processing</span>
+              <span className="text-sm font-mono tabular-nums">{Math.round(progress)}%</span>
             </div>
-            <div className="flex justify-between mt-3">
-              <span className="text-sm text-white/40">Processing...</span>
-              <span className="text-sm font-mono text-white/60">{Math.round(progress)}%</span>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${progress}%` }} />
             </div>
           </div>
 
-          {/* Steps */}
-          <div className="space-y-4 mb-8">
-            {steps.map((step, index) => {
-              const status = getStepStatus(index)
+          <div className="space-y-3">
+            {steps.map((step, i) => {
+              const stepStatus = stepStatuses[i]
               return (
-                <div
-                  key={step.id}
-                  className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
-                    status === 'running'
-                      ? 'bg-indigo-500/10 border border-indigo-500/30'
-                      : status === 'complete'
-                      ? 'bg-green-500/5 border border-green-500/20'
-                      : 'bg-white/[0.02] border border-transparent'
-                  }`}
-                >
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      status === 'running'
-                        ? 'bg-indigo-500/20 text-indigo-400'
-                        : status === 'complete'
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-white/5 text-white/30'
-                    }`}
-                  >
-                    {status === 'complete' ? (
-                      <Check className="w-5 h-5" />
-                    ) : status === 'running' ? (
-                      <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      step.icon
-                    )}
+                <div key={i} className="flex items-center gap-3 py-2">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                    stepStatus.status === 'done'
+                      ? 'bg-[var(--success)] text-[var(--bg-primary)]'
+                      : stepStatus.status === 'active'
+                      ? 'border-2 border-[var(--accent)]'
+                      : stepStatus.status === 'error'
+                      ? 'bg-[var(--error)] text-[var(--bg-primary)]'
+                      : 'bg-[var(--bg-tertiary)]'
+                  }`}>
+                    {stepStatus.status === 'done' && <Check className="w-3 h-3" />}
+                    {stepStatus.status === 'active' && <div className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />}
+                    {stepStatus.status === 'error' && <span>!</span>}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`font-medium ${
-                        status === 'pending' ? 'text-white/30' : 'text-white'
-                      }`}
-                    >
+                  <div className="flex-1">
+                    <span className={stepStatus.status === 'pending' ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}>
                       {step.label}
-                    </p>
-                    <p className="text-sm text-white/40 truncate">{step.description}</p>
-                    {step.id === 'simulate' && status === 'running' && (
-                      <p className="text-sm text-indigo-400 mt-1">
-                        {simulationsComplete.toLocaleString()} / 10,000 scenarios
-                      </p>
+                    </span>
+                    {stepStatus.status === 'active' && step.label.includes('Monte Carlo') && (
+                      <span className="ml-2 text-sm font-mono text-[var(--accent)]">
+                        {simCount.toLocaleString()}/10,000
+                      </span>
+                    )}
+                    {stepStatus.message && (
+                      <span className="ml-2 text-xs text-[var(--text-tertiary)]">({stepStatus.message})</span>
                     )}
                   </div>
+                  <span className="text-xs text-[var(--text-tertiary)]">{step.desc}</span>
                 </div>
               )
             })}
           </div>
 
-          {/* HPC Workers Visualization */}
-          <div className="glass-card rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-white/70">Parallel Workers</span>
-              <span className="text-xs text-white/40">4 cores active</span>
-            </div>
-            <div className="grid grid-cols-4 gap-3">
-              {workerProgress.map((progress, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-100"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-white/40">W{i + 1}</span>
-                    <span className="text-white/60 font-mono">{progress}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <div className="h-px bg-[var(--border-primary)] my-6" />
 
-          {/* Stats */}
-          <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-white font-mono">
-                {simulationsComplete.toLocaleString()}
-              </p>
-              <p className="text-xs text-white/40">Scenarios</p>
+              <p className="text-xl font-medium tabular-nums">{simCount.toLocaleString()}</p>
+              <p className="text-xs text-[var(--text-tertiary)]">scenarios</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-white font-mono">4</p>
-              <p className="text-xs text-white/40">Workers</p>
+              <p className="text-xl font-medium tabular-nums">10,000</p>
+              <p className="text-xs text-[var(--text-tertiary)]">total</p>
             </div>
             <div>
-              <p className="text-2xl font-bold gradient-text font-mono">~500ms</p>
-              <p className="text-xs text-white/40">Total time</p>
+              <p className="text-xl font-medium tabular-nums">{Math.round(progress)}%</p>
+              <p className="text-xs text-[var(--text-tertiary)]">complete</p>
             </div>
           </div>
         </div>
 
-        <p className="text-center text-white/30 text-sm mt-6">
-          Powered by NumPy vectorization + multiprocessing
+        <p className="text-center text-xs text-[var(--text-tertiary)] mt-6">
+          Running Monte Carlo simulation with real financial data
         </p>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, ArrowLeft, DollarSign, Target, User, Sparkles, Check } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 
 interface UserInputs {
   monthlyIncome: string
@@ -44,196 +44,150 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Panel - Progress */}
-      <div className="hidden lg:flex w-80 flex-col justify-between p-8 border-r border-white/5">
-        <div>
-          <Link href="/" className="flex items-center gap-2 mb-12">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-semibold text-white">FutureCast</span>
-          </Link>
+      {/* Sidebar */}
+      <div className="hidden lg:block w-64 border-r border-[var(--border-primary)] p-6">
+        <Link href="/" className="flex items-center gap-2 mb-12">
+          <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+          <span className="font-medium">FutureCast</span>
+        </Link>
 
-          <div className="space-y-6">
-            {[
-              { num: 1, title: 'About you', desc: 'Age and risk tolerance' },
-              { num: 2, title: 'Your income', desc: 'Monthly take-home pay' },
-              { num: 3, title: 'Your goal', desc: 'What you want to achieve' },
-            ].map((item) => (
-              <div key={item.num} className="flex items-start gap-4">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                    step > item.num
-                      ? 'bg-green-500/20 text-green-400'
-                      : step === item.num
-                      ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
-                      : 'bg-white/5 text-white/30'
-                  }`}
-                >
-                  {step > item.num ? <Check className="w-4 h-4" /> : item.num}
-                </div>
-                <div>
-                  <p className={`font-medium ${step >= item.num ? 'text-white' : 'text-white/30'}`}>
-                    {item.title}
-                  </p>
-                  <p className="text-sm text-white/40">{item.desc}</p>
-                </div>
+        <div className="space-y-4">
+          {[
+            { n: 1, label: 'Profile' },
+            { n: 2, label: 'Income' },
+            { n: 3, label: 'Goal' },
+          ].map((s) => (
+            <div key={s.n} className="flex items-center gap-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                step > s.n
+                  ? 'bg-[var(--success)] text-[var(--bg-primary)]'
+                  : step === s.n
+                  ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
+              }`}>
+                {step > s.n ? <Check className="w-3 h-3" /> : s.n}
               </div>
-            ))}
-          </div>
+              <span className={step >= s.n ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}>
+                {s.label}
+              </span>
+            </div>
+          ))}
         </div>
-
-        <p className="text-sm text-white/30">
-          Your data is encrypted and never shared.
-        </p>
       </div>
 
-      {/* Right Panel - Form */}
+      {/* Main content */}
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-lg">
-          {/* Mobile Progress */}
-          <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className={`h-1 w-16 rounded-full transition-colors ${
-                  i <= step ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-white/10'
-                }`}
-              />
+        <div className="w-full max-w-md animate-fade">
+          {/* Mobile progress */}
+          <div className="lg:hidden flex gap-2 mb-8">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className={`h-1 flex-1 rounded ${step >= n ? 'bg-[var(--text-primary)]' : 'bg-[var(--bg-tertiary)]'}`} />
             ))}
           </div>
 
-          {/* Step 1: Basic Info */}
+          {/* Step 1 */}
           {step === 1 && (
-            <div className="space-y-8">
-              <div>
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-6">
-                  <User className="w-7 h-7 text-white" />
-                </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Let's get started</h1>
-                <p className="text-white/50">Tell us a bit about yourself to personalize your simulation.</p>
-              </div>
+            <div>
+              <p className="text-sm text-[var(--text-tertiary)] mb-2">Step 1 of 3</p>
+              <h1 className="text-2xl font-medium mb-2">About you</h1>
+              <p className="text-[var(--text-secondary)] mb-8">Basic info to personalize simulations.</p>
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-3">
-                    Your Age
-                  </label>
+                  <label htmlFor="age" className="block text-sm font-medium mb-2">Age</label>
                   <input
+                    id="age"
                     type="number"
                     value={inputs.age}
                     onChange={(e) => setInputs({ ...inputs, age: e.target.value })}
                     placeholder="30"
-                    className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-3">
-                    Risk Tolerance
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <label className="block text-sm font-medium mb-2">Risk tolerance</label>
+                  <div className="flex gap-2">
                     {(['low', 'medium', 'high'] as const).map((level) => (
                       <button
                         key={level}
+                        type="button"
                         onClick={() => setInputs({ ...inputs, riskTolerance: level })}
-                        className={`py-4 px-4 rounded-xl border transition-all capitalize ${
+                        className={`flex-1 py-2 px-3 text-sm font-medium rounded-md border capitalize transition-colors ${
                           inputs.riskTolerance === level
-                            ? 'border-indigo-500 bg-indigo-500/10 text-white'
-                            : 'border-white/10 bg-white/5 text-white/50 hover:border-white/20'
+                            ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-transparent'
+                            : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-primary)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {level}
                       </button>
                     ))}
                   </div>
-                  <p className="text-sm text-white/30 mt-3">
-                    This affects how we model investment returns in your simulation.
-                  </p>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-2">Affects investment return modeling</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 2: Income */}
+          {/* Step 2 */}
           {step === 2 && (
-            <div className="space-y-8">
-              <div>
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-6">
-                  <DollarSign className="w-7 h-7 text-white" />
-                </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Your Income</h1>
-                <p className="text-white/50">How much do you take home each month after taxes?</p>
-              </div>
+            <div>
+              <p className="text-sm text-[var(--text-tertiary)] mb-2">Step 2 of 3</p>
+              <h1 className="text-2xl font-medium mb-2">Income</h1>
+              <p className="text-[var(--text-secondary)] mb-8">Monthly take-home after taxes.</p>
 
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-3">
-                  Monthly Take-Home Pay
-                </label>
+                <label htmlFor="income" className="block text-sm font-medium mb-2">Monthly income</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 text-lg">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">$</span>
                   <input
+                    id="income"
                     type="number"
                     value={inputs.monthlyIncome}
                     onChange={(e) => setInputs({ ...inputs, monthlyIncome: e.target.value })}
-                    placeholder="5,000"
-                    className="w-full pl-10 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white text-lg placeholder-white/30 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                    placeholder="5000"
+                    className="input pl-7"
                   />
                 </div>
-                <p className="text-sm text-white/30 mt-3">
-                  This is your net income after taxes and deductions.
-                </p>
-              </div>
-
-              <div className="glass-card rounded-xl p-4">
-                <p className="text-sm text-white/50">
-                  <span className="text-indigo-400">Tip:</span> Include regular bonuses or side income as part of your monthly average.
-                </p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-2">Net income after deductions</p>
               </div>
             </div>
           )}
 
-          {/* Step 3: Goal */}
+          {/* Step 3 */}
           {step === 3 && (
-            <div className="space-y-8">
-              <div>
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6">
-                  <Target className="w-7 h-7 text-white" />
-                </div>
-                <h1 className="text-3xl font-bold text-white mb-2">Your Financial Goal</h1>
-                <p className="text-white/50">Describe what you want to achieve in plain English.</p>
-              </div>
+            <div>
+              <p className="text-sm text-[var(--text-tertiary)] mb-2">Step 3 of 3</p>
+              <h1 className="text-2xl font-medium mb-2">Your goal</h1>
+              <p className="text-[var(--text-secondary)] mb-8">Describe what you want to achieve.</p>
 
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-3">
-                  What's your goal?
-                </label>
+                <label htmlFor="goal" className="block text-sm font-medium mb-2">Goal</label>
                 <textarea
+                  id="goal"
                   value={inputs.goal}
                   onChange={(e) => setInputs({ ...inputs, goal: e.target.value })}
-                  placeholder="I want to save $50,000 for a house down payment in 3 years"
-                  rows={4}
-                  className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
+                  placeholder="Save $50,000 for a house down payment in 3 years"
+                  rows={3}
+                  className="input resize-none"
                 />
-                <p className="text-sm text-white/30 mt-3">
-                  Our AI will parse this into simulation parameters.
-                </p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-2">Our AI extracts amount, timeline, and type</p>
               </div>
 
-              <div className="glass-card rounded-xl p-5">
-                <p className="text-sm font-medium text-white/70 mb-3">Try these examples:</p>
+              <div className="mt-6">
+                <p className="text-xs text-[var(--text-tertiary)] mb-2">Examples</p>
                 <div className="flex flex-wrap gap-2">
                   {[
                     'Save $10K emergency fund in 1 year',
                     'Pay off $25K debt in 5 years',
-                    'Retire by age 55',
-                  ].map((example, i) => (
+                  ].map((ex) => (
                     <button
-                      key={i}
-                      onClick={() => setInputs({ ...inputs, goal: example })}
-                      className="text-sm px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 hover:text-white transition-all"
+                      key={ex}
+                      type="button"
+                      onClick={() => setInputs({ ...inputs, goal: ex })}
+                      className="text-xs px-2 py-1 rounded border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors"
                     >
-                      {example}
+                      {ex}
                     </button>
                   ))}
                 </div>
@@ -244,28 +198,22 @@ export default function OnboardingPage() {
           {/* Navigation */}
           <div className="flex justify-between mt-10">
             <button
+              type="button"
               onClick={handleBack}
               disabled={step === 1}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all ${
-                step === 1
-                  ? 'text-white/20 cursor-not-allowed'
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
-              }`}
+              className={`btn btn-secondary ${step === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </button>
 
             <button
+              type="button"
               onClick={handleNext}
               disabled={!canProceed()}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
-                canProceed()
-                  ? 'btn-primary text-white'
-                  : 'bg-white/5 text-white/30 cursor-not-allowed'
-              }`}
+              className={`btn btn-primary ${!canProceed() ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {step === 3 ? 'Run Simulation' : 'Continue'}
+              {step === 3 ? 'Run simulation' : 'Continue'}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

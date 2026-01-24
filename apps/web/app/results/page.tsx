@@ -2,224 +2,211 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, TrendingUp, AlertTriangle, Lightbulb, RefreshCw, Sparkles, Target, Zap } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react'
 import { ResultsChart } from '@/components/ResultsChart'
 import { SensitivityTable } from '@/components/SensitivityTable'
-import { InsightCard } from '@/components/InsightCard'
+import type { SensitivityAnalysis } from '@/types'
 
-interface SimulationResults {
+interface Results {
   successProbability: number
   medianOutcome: number
-  percentiles: {
-    p10: number
-    p25: number
-    p50: number
-    p75: number
-    p90: number
-  }
+  percentiles: { p10: number; p25: number; p50: number; p75: number; p90: number }
   goalAmount: number
   timelineMonths: number
+  mean?: number
+  std?: number
+  worstCase?: number
+  bestCase?: number
+}
+
+interface StoredResults {
+  results: Results
+  sensitivity: SensitivityAnalysis | null
+  parsedGoal: {
+    goalType: string
+    targetAmount: number
+    timelineMonths: number
+  }
+  financialProfile: {
+    liquidAssets: number
+    monthlySpending: number
+  }
+  timestamp: number
 }
 
 export default function ResultsPage() {
-  const [results, setResults] = useState<SimulationResults | null>(null)
+  const router = useRouter()
+  const [results, setResults] = useState<Results | null>(null)
+  const [sensitivity, setSensitivity] = useState<SensitivityAnalysis | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [nSimulations, setNSimulations] = useState(10000)
 
   useEffect(() => {
-    // In production, this would come from the API
-    // For now, generate mock results
-    const mockResults: SimulationResults = {
-      successProbability: 0.73,
-      medianOutcome: 48200,
-      percentiles: {
-        p10: 31000,
-        p25: 39500,
-        p50: 48200,
-        p75: 57800,
-        p90: 68500,
-      },
-      goalAmount: 50000,
-      timelineMonths: 36,
+    const storedData = localStorage.getItem('simulationResults')
+
+    if (!storedData) {
+      setError('No simulation results found. Please run a simulation first.')
+      return
     }
-    setResults(mockResults)
+
+    try {
+      const data: StoredResults = JSON.parse(storedData)
+
+      // Check if results are stale (older than 1 hour)
+      const oneHour = 60 * 60 * 1000
+      if (Date.now() - data.timestamp > oneHour) {
+        console.warn('Simulation results are older than 1 hour')
+      }
+
+      setResults(data.results)
+      setSensitivity(data.sensitivity)
+    } catch (err) {
+      console.error('Failed to parse stored results:', err)
+      setError('Failed to load simulation results. Please run a new simulation.')
+    }
   }, [])
 
-  if (!results) {
+  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="w-full max-w-lg">
+          <div className="card p-6">
+            <div className="flex items-center gap-3 text-[var(--error)] mb-4">
+              <AlertCircle className="w-5 h-5" />
+              <span className="font-medium">No Results Found</span>
+            </div>
+            <p className="text-[var(--text-secondary)] mb-6">{error}</p>
+            <Link href="/onboarding" className="btn btn-primary w-full justify-center">
+              Start a simulation
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
 
-  const probabilityGradient =
-    results.successProbability >= 0.8
-      ? 'gradient-text-success'
-      : results.successProbability >= 0.6
-      ? 'gradient-text'
-      : 'text-red-400'
+  if (!results) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  const delta = results.medianOutcome - results.goalAmount
+  const deltaPositive = delta >= 0
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-white/50 hover:text-white transition-colors"
-          >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-semibold text-white">FutureCast</span>
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-primary)]">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+            <span className="font-medium">FutureCast</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/onboarding"
-              className="flex items-center gap-2 text-white/50 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              New Simulation
-            </Link>
-            <button className="flex items-center gap-2 px-4 py-2 glass-card rounded-lg text-indigo-400 hover:text-indigo-300 transition-colors">
-              <RefreshCw className="w-4 h-4" />
-              Re-run
-            </button>
-          </div>
+          <span className="text-[var(--text-tertiary)]">/</span>
+          <span className="text-[var(--text-secondary)]">Results</span>
         </div>
+        <Link href="/onboarding" className="btn btn-secondary text-sm">
+          <ArrowLeft className="w-4 h-4" />
+          New simulation
+        </Link>
+      </header>
 
-        {/* Main Result Card */}
-        <div className="glass-card rounded-2xl p-8 mb-8 glow">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-sm text-white/70">Based on 10,000 simulations</span>
-            </div>
-            <h1 className="text-7xl font-bold mb-4">
-              <span className={probabilityGradient}>
-                {Math.round(results.successProbability * 100)}%
-              </span>
-            </h1>
-            <p className="text-xl text-white/60">
-              probability of reaching your{' '}
-              <span className="font-semibold text-white">${results.goalAmount.toLocaleString()}</span> goal
-              in <span className="font-semibold text-white">{results.timelineMonths} months</span>
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Summary */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <div className="card p-5">
+            <p className="text-sm text-[var(--text-tertiary)] mb-1">Success probability</p>
+            <p className="text-4xl font-medium tabular-nums">{Math.round(results.successProbability * 100)}%</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">of reaching goal</p>
+          </div>
+          <div className="card p-5">
+            <p className="text-sm text-[var(--text-tertiary)] mb-1">Expected outcome</p>
+            <p className="text-4xl font-medium tabular-nums">${results.medianOutcome.toLocaleString()}</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">50th percentile</p>
+          </div>
+          <div className="card p-5">
+            <p className="text-sm text-[var(--text-tertiary)] mb-1">Goal</p>
+            <p className="text-4xl font-medium tabular-nums">${results.goalAmount.toLocaleString()}</p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">in {results.timelineMonths} months</p>
+          </div>
+          <div className="card p-5">
+            <p className="text-sm text-[var(--text-tertiary)] mb-1">Gap</p>
+            <p className={`text-4xl font-medium tabular-nums ${deltaPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+              {deltaPositive ? '+' : ''}${delta.toLocaleString()}
             </p>
-          </div>
-
-          {/* Percentile Breakdown */}
-          <div className="grid grid-cols-5 gap-4 mb-10">
-            {Object.entries(results.percentiles).map(([key, value], index) => {
-              const labels = ['Pessimistic', '25th %ile', 'Median', '75th %ile', 'Optimistic']
-              const isMedian = key === 'p50'
-              return (
-                <div
-                  key={key}
-                  className={`text-center p-5 rounded-xl transition-all ${
-                    isMedian
-                      ? 'glass-card border-indigo-500/30'
-                      : 'bg-white/[0.02] border border-white/5'
-                  }`}
-                >
-                  <p className="text-xs text-white/40 uppercase tracking-wider mb-2">{labels[index]}</p>
-                  <p className={`text-2xl font-bold ${isMedian ? 'gradient-text' : 'text-white'}`}>
-                    ${(value / 1000).toFixed(1)}k
-                  </p>
-                  <p className="text-xs text-white/30 mt-1">{key.toUpperCase()}</p>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Chart */}
-          <div className="glass-card rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-white">Projection Over Time</h3>
-                <p className="text-sm text-white/40">Confidence bands show outcome distribution</p>
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500" />
-                  <span className="text-white/50">Median</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-indigo-500/30" />
-                  <span className="text-white/50">Confidence</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5 bg-pink-500 rounded" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #ec4899, #ec4899 4px, transparent 4px, transparent 8px)' }} />
-                  <span className="text-white/50">Goal</span>
-                </div>
-              </div>
-            </div>
-            <ResultsChart
-              percentiles={results.percentiles}
-              goalAmount={results.goalAmount}
-              timelineMonths={results.timelineMonths}
-            />
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">median vs goal</p>
           </div>
         </div>
 
-        {/* Insights Grid */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <InsightCard
-            icon={<Target className="w-6 h-6" />}
-            title="Most Likely Outcome"
-            value={`$${results.medianOutcome.toLocaleString()}`}
-            description={`Your median outcome is ${
-              results.medianOutcome >= results.goalAmount ? 'above' : 'below'
-            } your goal by $${Math.abs(
-              results.medianOutcome - results.goalAmount
-            ).toLocaleString()}`}
-            variant={results.medianOutcome >= results.goalAmount ? 'success' : 'warning'}
-            gradient="from-indigo-500 to-purple-500"
-          />
-
-          <InsightCard
-            icon={<AlertTriangle className="w-6 h-6" />}
-            title="Worst Case (10th %ile)"
-            value={`$${results.percentiles.p10.toLocaleString()}`}
-            description="In 10% of scenarios, you may end up with this amount or less"
-            variant="warning"
-            gradient="from-orange-500 to-red-500"
-          />
-
-          <InsightCard
-            icon={<Zap className="w-6 h-6" />}
-            title="Best Case (90th %ile)"
-            value={`$${results.percentiles.p90.toLocaleString()}`}
-            description="In 10% of scenarios, you could exceed this amount"
-            variant="success"
-            gradient="from-green-500 to-emerald-500"
-          />
-        </div>
-
-        {/* Sensitivity Analysis */}
-        <div className="glass-card rounded-2xl p-8 glow">
-          <div className="flex items-start justify-between mb-6">
+        {/* Distribution */}
+        <div className="card p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-white mb-2">
-                What-If Analysis
-              </h2>
-              <p className="text-white/50">
-                See how changes to your financial behavior affect your success probability
-              </p>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-              <TrendingUp className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm text-indigo-400">Sensitivity</span>
+              <h2 className="font-medium">Outcome distribution</h2>
+              <p className="text-sm text-[var(--text-tertiary)]">Based on {nSimulations.toLocaleString()} simulations</p>
             </div>
           </div>
-          <SensitivityTable baseProbability={results.successProbability} />
+
+          <table className="table mb-6">
+            <thead>
+              <tr>
+                <th>Percentile</th>
+                <th>Outcome</th>
+                <th>vs Goal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { label: '10th (pessimistic)', value: results.percentiles.p10 },
+                { label: '25th', value: results.percentiles.p25 },
+                { label: '50th (expected)', value: results.percentiles.p50 },
+                { label: '75th', value: results.percentiles.p75 },
+                { label: '90th (optimistic)', value: results.percentiles.p90 },
+              ].map((row) => {
+                const diff = row.value - results.goalAmount
+                const positive = diff >= 0
+                return (
+                  <tr key={row.label}>
+                    <td className="text-[var(--text-secondary)]">{row.label}</td>
+                    <td className="font-medium tabular-nums">${row.value.toLocaleString()}</td>
+                    <td>
+                      <span className={`badge ${positive ? 'badge-success' : 'badge-error'}`}>
+                        {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                        {positive ? '+' : ''}${diff.toLocaleString()}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+          <ResultsChart
+            percentiles={results.percentiles}
+            goalAmount={results.goalAmount}
+            timelineMonths={results.timelineMonths}
+          />
         </div>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-white/30 text-sm">
-            Results are estimates based on Monte Carlo simulation with 10,000 scenarios.
-            Past performance does not guarantee future results.
-          </p>
+        {/* Sensitivity */}
+        <div className="card p-6">
+          <div className="mb-6">
+            <h2 className="font-medium">What-if analysis</h2>
+            <p className="text-sm text-[var(--text-tertiary)]">How changes affect your probability</p>
+          </div>
+          <SensitivityTable
+            baseProbability={results.successProbability}
+            sensitivityData={sensitivity}
+          />
         </div>
+
+        <p className="text-center text-xs text-[var(--text-tertiary)] mt-8">
+          Results are estimates based on Monte Carlo simulation with {nSimulations.toLocaleString()} scenarios. Past performance does not guarantee future results.
+        </p>
       </div>
     </div>
   )
