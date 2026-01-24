@@ -49,8 +49,8 @@ Monte Carlo simulation—the same technique used by hedge funds and financial ad
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourteam/monte-carlo-finance.git
-cd monte-carlo-finance
+git clone https://github.com/yourteam/pff.git
+cd pff
 
 # Install dependencies
 npm install
@@ -85,7 +85,7 @@ Open http://localhost:3000
 ## Project Structure
 
 ```
-monte-carlo-finance/
+pff/
 ├── apps/
 │   ├── web/              # Next.js frontend
 │   └── api/              # Express backend
