@@ -58,10 +58,15 @@ export default function SimulationPage() {
 
     const runFullSimulation = async () => {
       try {
-        // Get user inputs from localStorage
+        // Get user inputs and customer ID from localStorage
         const storedInputs = localStorage.getItem('userInputs')
+        const customerId = localStorage.getItem('customerId')
         if (!storedInputs) {
           setError('No user inputs found. Please complete onboarding first.')
+          return
+        }
+        if (!customerId) {
+          setError('No customer ID found. Please log in again.')
           return
         }
 
@@ -72,7 +77,7 @@ export default function SimulationPage() {
         updateStep(0, 'active')
         let financialProfile: FinancialProfile
         try {
-          financialProfile = await getFinancialProfile()
+          financialProfile = await getFinancialProfile(customerId)
           updateStep(0, 'done')
           setProgress(25)
         } catch (err) {

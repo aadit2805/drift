@@ -50,9 +50,11 @@ export const nessieApi = {
   },
 }
 
-// Aggregation endpoint
-export const getFinancialProfile = async (): Promise<FinancialProfile> => {
-  const response = await api.get('/api/financial-profile')
+// Aggregation endpoint - requires customerId
+export const getFinancialProfile = async (customerId: string): Promise<FinancialProfile> => {
+  const response = await api.get('/api/financial-profile', {
+    params: { customerId }
+  })
   return response.data
 }
 
@@ -81,9 +83,11 @@ export const validateCustomer = async (customerId: string) => {
   return response.data
 }
 
-// Get accounts
-export const getAccounts = async () => {
-  const response = await api.get('/api/accounts')
+// Get accounts - requires customerId
+export const getAccounts = async (customerId: string) => {
+  const response = await api.get('/api/accounts', {
+    params: { customerId }
+  })
   return response.data
 }
 

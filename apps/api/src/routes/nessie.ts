@@ -4,10 +4,14 @@ import { NessieService } from '../services/nessieService.js'
 const router = Router()
 const nessieService = new NessieService()
 
-// Get all accounts
+// Get all accounts for a customer
 router.get('/accounts', async (req, res) => {
   try {
-    const accounts = await nessieService.getAccounts()
+    const customerId = req.query.customerId as string
+    if (!customerId) {
+      return res.status(400).json({ error: 'customerId query parameter is required' })
+    }
+    const accounts = await nessieService.getAccounts(customerId)
     res.json(accounts)
   } catch (error) {
     console.error('Error fetching accounts:', error)

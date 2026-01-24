@@ -1,12 +1,13 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { nessieApi, getFinancialProfile } from '@/lib/api'
+import { nessieApi, getFinancialProfile, getAccounts } from '@/lib/api'
 
-export function useAccounts() {
+export function useAccounts(customerId: string | null) {
   return useQuery({
-    queryKey: ['accounts'],
-    queryFn: nessieApi.getAccounts,
+    queryKey: ['accounts', customerId],
+    queryFn: () => getAccounts(customerId!),
+    enabled: !!customerId,
   })
 }
 
@@ -41,9 +42,10 @@ export function useMerchants() {
   })
 }
 
-export function useFinancialProfile() {
+export function useFinancialProfile(customerId: string | null) {
   return useQuery({
-    queryKey: ['financialProfile'],
-    queryFn: getFinancialProfile,
+    queryKey: ['financialProfile', customerId],
+    queryFn: () => getFinancialProfile(customerId!),
+    enabled: !!customerId,
   })
 }

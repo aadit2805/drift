@@ -74,10 +74,10 @@ export default function DashboardPage() {
       setCustomer(JSON.parse(customerDataStr))
     }
 
-    // Fetch accounts and financial profile
+    // Fetch accounts and financial profile for this customer
     Promise.all([
-      getAccounts(),
-      getFinancialProfile(),
+      getAccounts(customerId),
+      getFinancialProfile(customerId),
     ])
       .then(([accountsData, profileData]) => {
         setAccounts(accountsData)

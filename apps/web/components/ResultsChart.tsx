@@ -38,15 +38,27 @@ export function ResultsChart({ percentiles, goalAmount, timelineMonths }: Result
     }
   })
 
+  const formatCurrency = (value: number) => {
+    const rounded = Math.round(value)
+    if (rounded < 0) return `-$${Math.abs(rounded).toLocaleString()}`
+    return `$${rounded.toLocaleString()}`
+  }
+
+  const formatAxisValue = (value: number) => {
+    const k = value / 1000
+    if (k < 0) return `-$${Math.abs(k).toFixed(0)}k`
+    return `$${k.toFixed(0)}k`
+  }
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="card p-3 text-sm">
           <p className="text-[var(--text-tertiary)] mb-2">Month {label}</p>
           <div className="space-y-1 tabular-nums">
-            <p>90th: <span className="font-medium">${payload[0]?.value?.toLocaleString()}</span></p>
-            <p>50th: <span className="font-medium">${payload[2]?.value?.toLocaleString()}</span></p>
-            <p>10th: <span className="font-medium">${payload[4]?.value?.toLocaleString()}</span></p>
+            <p>90th: <span className="font-medium">{formatCurrency(payload[0]?.value || 0)}</span></p>
+            <p>50th: <span className="font-medium">{formatCurrency(payload[2]?.value || 0)}</span></p>
+            <p>10th: <span className="font-medium">{formatCurrency(payload[4]?.value || 0)}</span></p>
           </div>
         </div>
       )
@@ -79,12 +91,12 @@ export function ResultsChart({ percentiles, goalAmount, timelineMonths }: Result
             tickLine={false}
           />
           <YAxis
-            tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+            tickFormatter={formatAxisValue}
             stroke="var(--text-tertiary)"
             fontSize={12}
             axisLine={false}
             tickLine={false}
-            width={50}
+            width={55}
           />
           <Tooltip content={<CustomTooltip />} />
 

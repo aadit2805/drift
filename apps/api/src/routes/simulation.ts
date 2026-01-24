@@ -10,8 +10,13 @@ const nessieService = new NessieService()
 // Get aggregated financial profile
 router.get('/financial-profile', async (req, res) => {
   try {
-    // Fetch all account data for demo user
-    const accounts = await nessieService.getAccounts()
+    const customerId = req.query.customerId as string
+    if (!customerId) {
+      return res.status(400).json({ error: 'customerId query parameter is required' })
+    }
+
+    // Fetch all account data for the customer
+    const accounts = await nessieService.getAccounts(customerId)
 
     // Calculate liquid assets (checking + savings)
     const liquidAssets = accounts

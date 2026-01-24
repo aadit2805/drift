@@ -8,6 +8,56 @@ import { ResultsChart } from '@/components/ResultsChart'
 import { SensitivityTable } from '@/components/SensitivityTable'
 import type { SensitivityAnalysis } from '@/types'
 
+// Format currency with proper negative handling
+function formatCurrency(value: number): string {
+  // Ensure it's a valid number and round it
+  const num = Number(value) || 0
+  const rounded = Math.round(num)
+  const abs = Math.abs(rounded)
+
+  // For large numbers, use compact notation
+  if (abs >= 1000000) {
+    const millions = abs / 1000000
+    const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
+    return rounded < 0 ? `-$${formatted}M` : `$${formatted}M`
+  }
+  if (abs >= 10000) {
+    const thousands = abs / 1000
+    const formatted = thousands >= 100 ? Math.round(thousands) : thousands.toFixed(1).replace(/\.0$/, '')
+    return rounded < 0 ? `-$${formatted}K` : `$${formatted}K`
+  }
+
+  if (rounded < 0) {
+    return `-$${abs.toLocaleString()}`
+  }
+  return `$${rounded.toLocaleString()}`
+}
+
+// Format currency with +/- sign
+function formatCurrencyWithSign(value: number): string {
+  // Ensure it's a valid number and round it
+  const num = Number(value) || 0
+  const rounded = Math.round(num)
+  const abs = Math.abs(rounded)
+
+  // For large numbers, use compact notation
+  if (abs >= 1000000) {
+    const millions = abs / 1000000
+    const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
+    return rounded < 0 ? `-$${formatted}M` : `+$${formatted}M`
+  }
+  if (abs >= 10000) {
+    const thousands = abs / 1000
+    const formatted = thousands >= 100 ? Math.round(thousands) : thousands.toFixed(1).replace(/\.0$/, '')
+    return rounded < 0 ? `-$${formatted}K` : `+$${formatted}K`
+  }
+
+  if (rounded < 0) {
+    return `-$${abs.toLocaleString()}`
+  }
+  return `+$${rounded.toLocaleString()}`
+}
+
 interface Results {
   successProbability: number
   medianOutcome: number
@@ -146,18 +196,18 @@ export default function ResultsPage() {
           </div>
           <div className="card p-5">
             <p className="text-sm text-[var(--text-tertiary)] mb-1">Expected outcome</p>
-            <p className="text-4xl font-medium tabular-nums">${results.medianOutcome.toLocaleString()}</p>
+            <p className="text-4xl font-medium tabular-nums">{formatCurrency(results.medianOutcome)}</p>
             <p className="text-xs text-[var(--text-tertiary)] mt-1">50th percentile</p>
           </div>
           <div className="card p-5">
             <p className="text-sm text-[var(--text-tertiary)] mb-1">Goal</p>
-            <p className="text-4xl font-medium tabular-nums">${results.goalAmount.toLocaleString()}</p>
+            <p className="text-4xl font-medium tabular-nums">{formatCurrency(results.goalAmount)}</p>
             <p className="text-xs text-[var(--text-tertiary)] mt-1">in {results.timelineMonths} months</p>
           </div>
           <div className="card p-5">
             <p className="text-sm text-[var(--text-tertiary)] mb-1">Gap</p>
             <p className={`text-4xl font-medium tabular-nums ${deltaPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-              {deltaPositive ? '+' : ''}${delta.toLocaleString()}
+              {formatCurrencyWithSign(delta)}
             </p>
             <p className="text-xs text-[var(--text-tertiary)] mt-1">median vs goal</p>
           </div>
@@ -193,11 +243,11 @@ export default function ResultsPage() {
                 return (
                   <tr key={row.label}>
                     <td className="text-[var(--text-secondary)]">{row.label}</td>
-                    <td className="font-medium tabular-nums">${row.value.toLocaleString()}</td>
+                    <td className="font-medium tabular-nums">{formatCurrency(row.value)}</td>
                     <td>
                       <span className={`badge ${positive ? 'badge-success' : 'badge-error'}`}>
                         {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {positive ? '+' : ''}${diff.toLocaleString()}
+                        {formatCurrencyWithSign(diff)}
                       </span>
                     </td>
                   </tr>
