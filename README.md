@@ -55,24 +55,52 @@ cd pff
 # Install dependencies
 npm install
 
-# Set up Python environment
+# (Optional) Set up Python environment for faster simulations
 cd simulation
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
 cd ..
+```
 
+### Environment Variables
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your API keys:
+- `NESSIE_API_KEY` - Capital One Nessie API key (default provided for hackathon)
+- `OPENAI_API_KEY` - For LLM goal parsing (optional, falls back to keyword matching)
 
 ### Running Locally
 
+**Option 1: Single command (recommended)**
+```bash
+npm run dev
+```
+This uses Turborepo to run both the API (port 3001) and web app (port 3000) concurrently.
+
+**Option 2: Separate terminals**
 ```bash
 # Terminal 1: Start the API server
 npm run dev:api
 
 # Terminal 2: Start the frontend
 npm run dev:web
+```
 
-# Terminal 3 (optional): Seed demo data
+**Option 3: Run from app directories**
+```bash
+# Terminal 1
+cd apps/api && npm run dev
+
+# Terminal 2
+cd apps/web && npm run dev
+```
+
+**(Optional) Seed demo data**
+```bash
 npm run seed
 ```
 

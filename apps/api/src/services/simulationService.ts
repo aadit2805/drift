@@ -3,8 +3,8 @@ import path from 'path'
 import type { SimulationRequest, SimulationResults, SensitivityAnalysis } from '../types/index.js'
 
 export class SimulationService {
-  private pythonPath = 'python3'
   private simulationDir = path.resolve(process.cwd(), '../../simulation')
+  private pythonPath = path.join(this.simulationDir, 'venv/bin/python3')
 
   async runSimulation(request: SimulationRequest): Promise<SimulationResults> {
     // Try to run Python simulation

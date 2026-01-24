@@ -53,3 +53,5 @@ coverage/
 *.tsbuildinfo
 
 PROJECT_STRUCTURE.md
+
+.claude/
