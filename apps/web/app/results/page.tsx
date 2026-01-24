@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react'
 import { ResultsChart } from '@/components/ResultsChart'
 import { SensitivityTable } from '@/components/SensitivityTable'
-import type { SensitivityAnalysis } from '@/types'
+import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions } from '@/types'
 
 interface Results {
   successProbability: number
@@ -18,20 +18,15 @@ interface Results {
   std?: number
   worstCase?: number
   bestCase?: number
+  assumptions?: SimulationAssumptions
 }
 
 interface StoredResults {
   results: Results
   sensitivity: SensitivityAnalysis | null
-  parsedGoal: {
-    goalType: string
-    targetAmount: number
-    timelineMonths: number
-  }
-  financialProfile: {
-    liquidAssets: number
-    monthlySpending: number
-  }
+  parsedGoal: ParsedGoal
+  financialProfile: FinancialProfile
+  assumptions?: SimulationAssumptions
   timestamp: number
 }
 
@@ -39,6 +34,9 @@ export default function ResultsPage() {
   const router = useRouter()
   const [results, setResults] = useState<Results | null>(null)
   const [sensitivity, setSensitivity] = useState<SensitivityAnalysis | null>(null)
+  const [parsedGoal, setParsedGoal] = useState<ParsedGoal | null>(null)
+  const [financialProfile, setFinancialProfile] = useState<FinancialProfile | null>(null)
+  const [assumptions, setAssumptions] = useState<SimulationAssumptions | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const [nSimulations, setNSimulations] = useState(10000)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -73,6 +71,9 @@ export default function ResultsPage() {
 
       setResults(data.results)
       setSensitivity(data.sensitivity)
+      setParsedGoal(data.parsedGoal)
+      setFinancialProfile(data.financialProfile)
+      setAssumptions(data.results?.assumptions || data.assumptions)
     } catch (err) {
       console.error('Failed to parse stored results:', err)
       setError('Failed to load simulation results. Please run a new simulation.')
@@ -118,6 +119,63 @@ export default function ResultsPage() {
   const delta = results.medianOutcome - results.goalAmount
   const deltaPositive = delta >= 0
 
+  const formatCurrency = (value: number) => `$${Math.round(value).toLocaleString()}`
+
+  const buildCategoryRecommendations = () => {
+    if (!financialProfile || !financialProfile.spendingByCategory) return [] as string[]
+
+    const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
+    const candidates = Object.entries(financialProfile.spendingByCategory)
+      .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+
+    if (candidates.length === 0) return []
+
+    return candidates.map(([name, amount]) => {
+      const cutRate = 0.15
+      const monthlyCut = amount * cutRate
+      const totalCut = monthlyCut * (results.timelineMonths || 1)
+      return `Trim ${name} by ${Math.round(cutRate * 100)}% (~${formatCurrency(monthlyCut)}/mo) to free ${formatCurrency(totalCut)} over your timeline.`
+    })
+  }
+
+  const recommendations = [...buildCategoryRecommendations(), ...(sensitivity?.recommendations || [])]
+
+  const spendingSensitivity = sensitivity?.sensitivities?.spending_minus_10
+
+  const buildCategoryScenarios = () => {
+    if (!financialProfile || !financialProfile.spendingByCategory) return [] as { label: string; change: string; newProb: number; impact: number }[]
+
+    const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
+    const candidates = Object.entries(financialProfile.spendingByCategory)
+      .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+
+    const totalSpend = Math.max(financialProfile.monthlySpending || 0, 1)
+    const baseProb = results.successProbability
+
+    return candidates.map(([name, amount]) => {
+      const cutRate = 0.15
+      const overallCutFraction = (amount * cutRate) / totalSpend
+      const estimatedImpact = spendingSensitivity ? spendingSensitivity.impact * (overallCutFraction / 0.10) : 0
+      const newProb = Math.min(1, Math.max(0, baseProb + estimatedImpact))
+      return {
+        label: `Cut ${name}`,
+        change: `${Math.round(cutRate * 100)}% in ${name} (~${formatCurrency(amount * cutRate)}/mo)`,
+        newProb,
+        impact: estimatedImpact,
+      }
+    })
+  }
+
+  const categoryScenarios = buildCategoryScenarios()
+
+  const goalNeedsClarification = parsedGoal?.clarifyingQuestions && parsedGoal.clarifyingQuestions.length > 0
+
+  const effectiveIncome = financialProfile?.monthlyIncome || 0
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -137,6 +195,18 @@ export default function ResultsPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {goalNeedsClarification && (
+          <div className="card p-4 mb-6 bg-[var(--warning-bg,#FFF8E1)] border border-[var(--warning,#F59E0B)]">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-[var(--warning,#F59E0B)] mt-0.5" />
+              <div>
+                <p className="font-medium">Goal needs more detail</p>
+                <p className="text-sm text-[var(--text-secondary)]">We had to make assumptions because the goal was vague. Add a specific dollar target and timeline for better accuracy.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Summary */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="card p-5">
@@ -162,6 +232,7 @@ export default function ResultsPage() {
             <p className="text-xs text-[var(--text-tertiary)] mt-1">median vs goal</p>
           </div>
         </div>
+
 
         {/* Distribution */}
         <div className="card p-6 mb-8">
@@ -214,7 +285,7 @@ export default function ResultsPage() {
         </div>
 
         {/* Sensitivity */}
-        <div className="card p-6">
+        <div className="card p-6 mb-8">
           <div className="mb-6">
             <h2 className="font-medium">What-if analysis</h2>
             <p className="text-sm text-[var(--text-tertiary)]">How changes affect your probability</p>
@@ -222,7 +293,35 @@ export default function ResultsPage() {
           <SensitivityTable
             baseProbability={results.successProbability}
             sensitivityData={sensitivity}
+            recommendations={recommendations}
+            customScenarios={categoryScenarios}
           />
+        </div>
+
+        {/* Assumptions */}
+        <div className="card p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-medium">Assumptions</h2>
+              <p className="text-sm text-[var(--text-tertiary)]">How we interpreted your data and goal</p>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-[var(--text-tertiary)] mb-1">Monthly income (from Nessie)</p>
+              <p className="font-medium">{formatCurrency(effectiveIncome)}/mo</p>
+              {assumptions?.salaryDetails?.notes && assumptions.salaryDetails.notes.length > 0 && (
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">{assumptions.salaryDetails.notes[0]}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-[var(--text-tertiary)] mb-1">Spending baseline</p>
+              <p className="font-medium">{financialProfile ? `${formatCurrency(financialProfile.monthlySpending || 0)}/mo` : 'Not available'}</p>
+              {financialProfile?.spendingVolatility !== undefined && (
+                <p className="text-xs text-[var(--text-tertiary)] mt-1\">Volatility {Math.round(financialProfile.spendingVolatility * 100)}%</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <p className="text-center text-xs text-[var(--text-tertiary)] mt-8">

@@ -6,6 +6,8 @@ import type { SensitivityAnalysis } from '@/types'
 interface SensitivityTableProps {
   baseProbability: number
   sensitivityData?: SensitivityAnalysis | null
+  recommendations?: string[]
+  customScenarios?: ScenarioRow[]
 }
 
 interface ScenarioRow {
@@ -15,42 +17,39 @@ interface ScenarioRow {
   impact: number
 }
 
-export function SensitivityTable({ baseProbability, sensitivityData }: SensitivityTableProps) {
+export function SensitivityTable({ baseProbability, sensitivityData, recommendations, customScenarios }: SensitivityTableProps) {
   // Convert API sensitivity data to display format
-  const scenarios: ScenarioRow[] = sensitivityData?.sensitivities
-    ? Object.entries(sensitivityData.sensitivities).map(([param, data]) => {
-        // Format the parameter name for display
-        const labelMap: Record<string, string> = {
-          'income_plus_10': 'Increase income by 10%',
-          'income_minus_10': 'Decrease income by 10%',
-          'spending_minus_10': 'Reduce spending by 10%',
-          'spending_plus_10': 'Increase spending by 10%',
-          'timeline_plus_6mo': 'Extend timeline by 6 months',
-        }
+  const apiScenarios: ScenarioRow[] = sensitivityData?.sensitivities
+    ? Object.entries(sensitivityData.sensitivities)
+        .filter(([param]) => !param.startsWith('income_'))
+        .map(([param, data]) => {
+          const labelMap: Record<string, string> = {
+            'spending_minus_10': 'Reduce spending by 10%',
+            'spending_plus_10': 'Increase spending by 10%',
+            'timeline_plus_6mo': 'Extend timeline by 6 months',
+          }
 
-        const changeMap: Record<string, string> = {
-          'income_plus_10': '+10% income',
-          'income_minus_10': '-10% income',
-          'spending_minus_10': '-10% spending',
-          'spending_plus_10': '+10% spending',
-          'timeline_plus_6mo': '+6 months',
-        }
+          const changeMap: Record<string, string> = {
+            'spending_minus_10': '-10% spending',
+            'spending_plus_10': '+10% spending',
+            'timeline_plus_6mo': '+6 months',
+          }
 
-        return {
-          label: labelMap[param] || param.replace(/_/g, ' '),
-          change: changeMap[param] || `${data.delta > 0 ? '+' : ''}${Math.round(data.delta * 100)}%`,
-          newProb: data.newProbability,
-          impact: data.impact,
-        }
-      })
-      // Sort by impact (highest first)
-      .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
-      // Take top 5
-      .slice(0, 5)
+          return {
+            label: labelMap[param] || param.replace(/_/g, ' '),
+            change: changeMap[param] || `${data.delta > 0 ? '+' : ''}${Math.round(data.delta * 100)}%`,
+            newProb: data.newProbability,
+            impact: data.impact,
+          }
+        })
     : []
 
-  // If no API data, show a message
-  if (scenarios.length === 0) {
+  const combinedScenarios = [...(customScenarios || []), ...apiScenarios]
+    .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
+    .slice(0, 5)
+
+  const topActions = combinedScenarios.slice(0, 2)
+  if (combinedScenarios.length === 0) {
     return (
       <div className="text-center py-8 text-[var(--text-tertiary)]">
         <p>Sensitivity analysis not available for this simulation.</p>
@@ -76,7 +75,7 @@ export function SensitivityTable({ baseProbability, sensitivityData }: Sensitivi
           <td className="font-medium tabular-nums">{Math.round(baseProbability * 100)}%</td>
           <td className="text-[var(--text-tertiary)]">-</td>
         </tr>
-        {scenarios.map((s) => {
+        {combinedScenarios.map((s) => {
           const impactPositive = s.impact > 0
           return (
             <tr key={s.label}>
@@ -97,16 +96,24 @@ export function SensitivityTable({ baseProbability, sensitivityData }: Sensitivi
           )
         })}
       </tbody>
-      {sensitivityData?.recommendations && sensitivityData.recommendations.length > 0 && (
+      {topActions.length > 0 && (
         <tfoot>
           <tr>
             <td colSpan={4} className="pt-4">
-              <p className="text-sm font-medium mb-2">Recommendations</p>
-              <ul className="text-sm text-[var(--text-secondary)] space-y-1">
-                {sensitivityData.recommendations.map((rec, i) => (
-                  <li key={i}>• {rec}</li>
+              <p className="text-sm font-medium mb-3">Highest-impact moves</p>
+              <div className="grid md:grid-cols-2 gap-3">
+                {topActions.map((action, i) => (
+                  <div key={i} className="p-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">{action.label}</span>
+                      <span className={`badge ${action.impact >= 0 ? 'badge-success' : 'badge-error'}`}>
+                        {action.impact >= 0 ? '+' : ''}{Math.round(action.impact * 100)}%
+                      </span>
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)]">{action.change}</p>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </td>
           </tr>
         </tfoot>
