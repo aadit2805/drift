@@ -7,11 +7,11 @@ Uses NumPy vectorization and multiprocessing for parallel execution.
 
 import numpy as np
 from multiprocessing import Pool, cpu_count
-from typing import Tuple
+from typing import Tuple, Callable, Optional
 from models import SimulationRequest, SimulationResults, Percentiles, SimulationParams
 
 
-def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> np.ndarray:
+def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> Tuple[np.ndarray, int]:
     """
     Run a batch of Monte Carlo simulations.
 
@@ -33,6 +33,10 @@ def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> np.
     )
     base_income = request.user_inputs.monthly_income
     base_spending = request.financial_profile.monthly_spending
+    monthly_loan_payments = request.financial_profile.monthly_loan_payments or 0.0
+
+    # Emergency fund target (6 months of spending)
+    emergency_fund_target = base_spending * 6
 
     # Pre-generate all random numbers for efficiency
     # Shape: (n_sims, months)
@@ -64,22 +68,39 @@ def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> np.
         # Emergency expenses
         emergencies = emergency_events[:, month] * emergency_amounts[:, month]
 
-        # Investment returns (only on positive balance)
-        returns = np.maximum(balances[:, month], 0) * market_returns[:, month]
+        # CRITICAL FIX #1: Include loan payments in balance calculation
+        # Previously these were completely ignored, causing unrealistic scenarios
+        
+        # Calculate investable balance (above emergency fund threshold)
+        investable_balance = np.maximum(balances[:, month] - emergency_fund_target, 0)
 
-        # Update balances
+        # CRITICAL FIX #2: Only apply investment returns to investable portion
+        # Previously returns were applied to entire balance including cash accounts
+        # This caused unrealistic positive outcomes and mixed up account types
+        returns = investable_balance * market_returns[:, month]
+
+        # Update balances with all cash flows
+        # The key fix: include monthly_loan_payments which was missing before
         balances[:, month + 1] = (
             balances[:, month] +
             income -
             spending -
-            emergencies +
+            emergencies -
+            monthly_loan_payments +  # CRITICAL FIX: Include loan payments
             returns
         )
 
-    return balances[:, -1]  # Return final balances
+        # Prevent unrealistic negative balances (can go negative but represents debt)
+        # This is realistic - user can go into overdraft, but it costs more interest
+
+    return balances[:, -1], batch_id  # Return final balances with batch id
 
 
-def run_monte_carlo(request: SimulationRequest, n_workers: int = None) -> SimulationResults:
+def run_monte_carlo(
+    request: SimulationRequest,
+    n_workers: int = None,
+    progress_callback: Optional[Callable[[dict], None]] = None
+) -> SimulationResults:
     """
     Run full Monte Carlo simulation with parallel workers.
 
@@ -103,13 +124,33 @@ def run_monte_carlo(request: SimulationRequest, n_workers: int = None) -> Simula
     batches = np.array_split(seeds, n_workers)
     batch_args = [(request, batch, i) for i, batch in enumerate(batches)]
 
-    # Run parallel simulations
+    # Run parallel simulations with progress reporting
     if n_workers > 1:
+        results_list = []
+        completed = 0
         with Pool(n_workers) as pool:
-            results = pool.map(run_simulation_batch, batch_args)
-        final_balances = np.concatenate(results)
+            for balances, batch_id in pool.imap_unordered(run_simulation_batch, batch_args):
+                results_list.append(balances)
+                completed += len(balances)
+                if progress_callback:
+                    progress_callback({
+                        "type": "progress",
+                        "completed": int(completed),
+                        "total": int(n_simulations),
+                        "worker": int(batch_id),
+                        "percentage": round(completed / n_simulations * 100, 2)
+                    })
+        final_balances = np.concatenate(results_list)
     else:
-        final_balances = run_simulation_batch(batch_args[0])
+        final_balances, batch_id = run_simulation_batch(batch_args[0])
+        if progress_callback:
+            progress_callback({
+                "type": "progress",
+                "completed": int(n_simulations),
+                "total": int(n_simulations),
+                "worker": int(batch_id),
+                "percentage": 100.0
+            })
 
     # Calculate statistics
     sorted_balances = np.sort(final_balances)

@@ -98,6 +98,22 @@ export interface ParsedGoal {
   timelineMonths: number
   constraints: string[]
   clarifyingQuestions?: string[]
+  confidence?: number
+  source?: string
+  rawGoal?: string
+}
+
+export interface SimulationAssumptions {
+  salaryDetails?: {
+    method: string
+    monthlyIncome: number
+    depositsAnalyzed?: number
+    windowMonths?: number
+    notes?: string[]
+  }
+  goalSource?: string
+  dataFreshnessDays?: number
+  notes?: string[]
 }
 
 export interface SimulationRequest {
@@ -127,6 +143,7 @@ export interface SimulationResults {
   std: number
   worstCase: number
   bestCase: number
+  assumptions?: SimulationAssumptions
 }
 
 export interface SensitivityAnalysis {
