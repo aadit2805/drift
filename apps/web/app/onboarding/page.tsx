@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 
 interface UserInputs {
-  monthlyIncome: string
   age: string
   riskTolerance: 'low' | 'medium' | 'high'
   goal: string
@@ -16,14 +15,13 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [inputs, setInputs] = useState<UserInputs>({
-    monthlyIncome: '',
     age: '',
     riskTolerance: 'medium',
     goal: '',
   })
 
   const handleNext = () => {
-    if (step < 3) {
+    if (step < 2) {
       setStep(step + 1)
     } else {
       localStorage.setItem('userInputs', JSON.stringify(inputs))
@@ -37,8 +35,7 @@ export default function OnboardingPage() {
 
   const canProceed = () => {
     if (step === 1) return inputs.age !== ''
-    if (step === 2) return inputs.monthlyIncome !== ''
-    if (step === 3) return inputs.goal.trim() !== ''
+    if (step === 2) return inputs.goal.trim() !== ''
     return false
   }
 
@@ -54,8 +51,7 @@ export default function OnboardingPage() {
         <div className="space-y-4">
           {[
             { n: 1, label: 'Profile' },
-            { n: 2, label: 'Income' },
-            { n: 3, label: 'Goal' },
+            { n: 2, label: 'Goal' },
           ].map((s) => (
             <div key={s.n} className="flex items-center gap-3">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
@@ -80,15 +76,15 @@ export default function OnboardingPage() {
         <div className="w-full max-w-md animate-fade">
           {/* Mobile progress */}
           <div className="lg:hidden flex gap-2 mb-8">
-            {[1, 2, 3].map((n) => (
+            {[1, 2].map((n) => (
               <div key={n} className={`h-1 flex-1 rounded ${step >= n ? 'bg-[var(--text-primary)]' : 'bg-[var(--bg-tertiary)]'}`} />
             ))}
           </div>
 
-          {/* Step 1 */}
+          {/* Step 1: Profile */}
           {step === 1 && (
             <div>
-              <p className="text-sm text-[var(--text-tertiary)] mb-2">Step 1 of 3</p>
+              <p className="text-sm text-[var(--text-tertiary)] mb-2">Step 1 of 2</p>
               <h1 className="text-2xl font-medium mb-2">About you</h1>
               <p className="text-[var(--text-secondary)] mb-8">Basic info to personalize simulations.</p>
 
@@ -129,35 +125,10 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* Step 2: Goal */}
           {step === 2 && (
             <div>
-              <p className="text-sm text-[var(--text-tertiary)] mb-2">Step 2 of 3</p>
-              <h1 className="text-2xl font-medium mb-2">Income</h1>
-              <p className="text-[var(--text-secondary)] mb-8">Monthly take-home after taxes.</p>
-
-              <div>
-                <label htmlFor="income" className="block text-sm font-medium mb-2">Monthly income</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">$</span>
-                  <input
-                    id="income"
-                    type="number"
-                    value={inputs.monthlyIncome}
-                    onChange={(e) => setInputs({ ...inputs, monthlyIncome: e.target.value })}
-                    placeholder="5000"
-                    className="input pl-7"
-                  />
-                </div>
-                <p className="text-xs text-[var(--text-tertiary)] mt-2">Net income after deductions</p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3 */}
-          {step === 3 && (
-            <div>
-              <p className="text-sm text-[var(--text-tertiary)] mb-2">Step 3 of 3</p>
+              <p className="text-sm text-[var(--text-tertiary)] mb-2">Step 2 of 2</p>
               <h1 className="text-2xl font-medium mb-2">Your goal</h1>
               <p className="text-[var(--text-secondary)] mb-8">Describe what you want to achieve.</p>
 
@@ -180,6 +151,7 @@ export default function OnboardingPage() {
                   {[
                     'Save $10K emergency fund in 1 year',
                     'Pay off $25K debt in 5 years',
+                    'Save $50K for a house in 3 years',
                   ].map((ex) => (
                     <button
                       key={ex}
@@ -213,7 +185,7 @@ export default function OnboardingPage() {
               disabled={!canProceed()}
               className={`btn btn-primary ${!canProceed() ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {step === 3 ? 'Run simulation' : 'Continue'}
+              {step === 2 ? 'Run simulation' : 'Continue'}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

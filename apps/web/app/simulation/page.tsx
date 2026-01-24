@@ -71,7 +71,8 @@ export default function SimulationPage() {
             creditDebt: 2000,
             loanDebt: 0,
             monthlyLoanPayments: 0,
-            monthlySpending: parseFloat(userInputs.monthlyIncome) * 0.7,
+            monthlyIncome: 6400,
+            monthlySpending: 4500,
             spendingByCategory: {},
             spendingVolatility: 0.15,
           }
@@ -102,7 +103,7 @@ export default function SimulationPage() {
         const simulationRequest: SimulationRequest = {
           financialProfile,
           userInputs: {
-            monthlyIncome: parseFloat(userInputs.monthlyIncome),
+            monthlyIncome: financialProfile.monthlyIncome || 6400, // From API deposits
             age: parseInt(userInputs.age),
             riskTolerance: userInputs.riskTolerance,
           },

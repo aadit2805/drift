@@ -51,6 +51,8 @@ export interface FinancialProfile {
   creditDebt: number
   loanDebt: number
   monthlyLoanPayments: number
+  monthlyIncome: number
+  monthlyBills: number
   monthlySpending: number
   spendingByCategory: Record<string, number>
   spendingVolatility: number

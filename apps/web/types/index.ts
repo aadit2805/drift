@@ -79,13 +79,15 @@ export interface FinancialProfile {
   creditDebt: number
   loanDebt: number
   monthlyLoanPayments: number
+  monthlyIncome: number
+  monthlyBills: number
   monthlySpending: number
   spendingByCategory: Record<string, number>
   spendingVolatility: number
 }
 
 export interface UserInputs {
-  monthlyIncome: number
+  monthlyIncome: number // Now pulled from API, kept for simulation compatibility
   age: number
   riskTolerance: 'low' | 'medium' | 'high'
 }
