@@ -34,10 +34,11 @@
 ### Must fix for demo:
 1. Include loan payments in simulation
 2. Make risk tolerance actually do something
-3. Add a "Your Financial Profile" page showing Nessie data
+3. Add a "Your Financial Profile" page showing Nessie data (DONE)
 4. Show simulation inputs/assumptions on results page
 
 ### Would be impressive:
 5. Monthly trajectory chart (not just final outcome)
-6. Real NLP parsing with OpenAI
+6. Real NLP parsing with OpenAI (DONE)
 7. Show the math: "You save ~$X/month → $Y over Z months"
+8. Show better recommendations linked to financial data (DONE)
