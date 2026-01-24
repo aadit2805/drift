@@ -120,21 +120,3 @@ See [docs/SIMULATION.md](docs/SIMULATION.md) for technical details.
 | `POST /api/sensitivity` | Run sensitivity analysis |
 
 See [docs/API.md](docs/API.md) for full documentation.
-
-## Demo Script
-
-1. Show the landing page and value proposition
-2. Enter user details (age, income, risk tolerance)
-3. Type natural language goal: "Save $50k for a house in 3 years"
-4. Watch simulation progress (show parallel workers)
-5. Display results: "73% probability of success"
-6. Show sensitivity analysis: "Reducing dining by 20% → 81%"
-7. Highlight the HPC abstraction: complex math, simple output
-
-## Team
-
-Built at [Hackathon Name] 2024
-
-## License
-
-MIT

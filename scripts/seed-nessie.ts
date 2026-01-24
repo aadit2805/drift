@@ -6,7 +6,7 @@
  */
 
 const NESSIE_BASE_URL = 'http://api.nessieisreal.com'
-const NESSIE_API_KEY = '4389318c54ddf318af62eda4ceed5f66'
+const NESSIE_API_KEY = '4389318c54ddf318af62eda4ceed5f66' //its ok that this is public it isn't that deep 
 
 interface ApiResponse {
   code: number
