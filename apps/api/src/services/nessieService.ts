@@ -4,7 +4,7 @@ const NESSIE_BASE_URL = process.env.NESSIE_BASE_URL || 'http://api.nessieisreal.
 const NESSIE_API_KEY = process.env.NESSIE_API_KEY || '4389318c54ddf318af62eda4ceed5f66'
 
 // Alex Morgan - comprehensive 12-month financial profile
-const DEFAULT_CUSTOMER_ID = '6975325e95150878eafe8c79'
+const DEFAULT_CUSTOMER_ID = '697541cf95150878eafea4ff'
 
 export class NessieService {
   private client = axios.create({

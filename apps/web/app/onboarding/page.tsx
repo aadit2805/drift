@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
@@ -19,6 +19,24 @@ export default function OnboardingPage() {
     riskTolerance: 'medium',
     goal: '',
   })
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const customerId = localStorage.getItem('customerId')
+    if (!customerId) {
+      router.push('/login')
+    } else {
+      setIsAuthenticated(true)
+    }
+  }, [router])
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   const handleNext = () => {
     if (step < 2) {

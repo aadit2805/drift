@@ -24,6 +24,17 @@ export default function SimulationPage() {
   const [error, setError] = useState<string | null>(null)
   const [simCount, setSimCount] = useState(0)
   const hasStarted = useRef(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Auth check
+  useEffect(() => {
+    const customerId = localStorage.getItem('customerId')
+    if (!customerId) {
+      router.push('/login')
+    } else {
+      setIsAuthenticated(true)
+    }
+  }, [router])
 
   const steps = [
     { label: 'Fetching financial data', desc: 'Nessie API' },
@@ -41,6 +52,7 @@ export default function SimulationPage() {
   }
 
   useEffect(() => {
+    if (!isAuthenticated) return
     if (hasStarted.current) return
     hasStarted.current = true
 
@@ -73,6 +85,7 @@ export default function SimulationPage() {
             monthlyLoanPayments: 0,
             monthlyIncome: 6400,
             monthlySpending: 4500,
+            monthlyBills: 500,
             spendingByCategory: {},
             spendingVolatility: 0.15,
           }
@@ -175,7 +188,16 @@ export default function SimulationPage() {
     }
 
     runFullSimulation()
-  }, [router])
+  }, [router, isAuthenticated])
+
+  // Show loading spinner while checking auth
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   if (error) {
     return (

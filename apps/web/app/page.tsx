@@ -19,7 +19,10 @@ export default function Home() {
           <Link href="#how" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             How it works
           </Link>
-          <Link href="/onboarding" className="btn btn-primary text-sm">
+          <Link href="/login" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+            Sign in
+          </Link>
+          <Link href="/login" className="btn btn-primary text-sm">
             Get Started
           </Link>
         </div>
@@ -35,7 +38,7 @@ export default function Home() {
           Stop planning with single numbers. Run probability simulations on your real financial data to know your actual odds of reaching any goal.
         </p>
         <div className="flex items-center gap-3">
-          <Link href="/onboarding" className="btn btn-primary">
+          <Link href="/login" className="btn btn-primary">
             Start simulation
             <ArrowRight className="w-4 h-4" />
           </Link>
@@ -153,7 +156,7 @@ export default function Home() {
           <p className="text-[var(--text-secondary)] mb-8">
             Connect your bank, set a goal, get probabilities.
           </p>
-          <Link href="/onboarding" className="btn btn-primary">
+          <Link href="/login" className="btn btn-primary">
             Start simulation
             <ArrowRight className="w-4 h-4" />
           </Link>

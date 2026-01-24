@@ -114,6 +114,29 @@ router.get('/merchants/:id', async (req, res) => {
   }
 })
 
+// Validate customer ID (for login)
+router.post('/validate-customer', async (req, res) => {
+  try {
+    const { customerId } = req.body
+
+    if (!customerId || typeof customerId !== 'string') {
+      return res.status(400).json({ valid: false, error: 'Customer ID is required' })
+    }
+
+    // Try to fetch the customer from Nessie
+    const customer = await nessieService.getCustomer(customerId)
+
+    if (!customer || customer.code === 404) {
+      return res.status(404).json({ valid: false, error: 'Customer not found' })
+    }
+
+    res.json({ valid: true, customer })
+  } catch (error) {
+    console.error('Error validating customer:', error)
+    res.status(500).json({ valid: false, error: 'Failed to validate customer' })
+  }
+})
+
 // Get all customers
 router.get('/customers', async (req, res) => {
   try {

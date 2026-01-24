@@ -21,6 +21,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/nessie', nessieRouter)
+app.use('/api', nessieRouter) // Also mount nessie routes at /api for convenience
 app.use('/api', simulationRouter)
 app.use('/api', llmRouter)
 
