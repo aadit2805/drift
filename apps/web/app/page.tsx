@@ -168,7 +168,7 @@ export default function Home() {
             <span className="text-sm text-[var(--text-tertiary)]">FutureCast</span>
           </div>
           <p className="text-sm text-[var(--text-tertiary)]">
-            Capital One + NorthMark HPC Hackathon
+            
           </p>
         </div>
       </footer>

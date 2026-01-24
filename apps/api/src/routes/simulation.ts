@@ -10,56 +10,86 @@ const nessieService = new NessieService()
 // Get aggregated financial profile
 router.get('/financial-profile', async (req, res) => {
   try {
-    // Fetch all account data
+    // Fetch all account data for demo user
     const accounts = await nessieService.getAccounts()
 
     // Calculate liquid assets (checking + savings)
     const liquidAssets = accounts
-      .filter((a) => a.type === 'Checking' || a.type === 'Savings')
-      .reduce((sum, a) => sum + a.balance, 0)
+      .filter((a: any) => a.type === 'Checking' || a.type === 'Savings')
+      .reduce((sum: number, a: any) => sum + a.balance, 0)
 
     // Calculate credit debt
     const creditDebt = accounts
-      .filter((a) => a.type === 'Credit Card')
-      .reduce((sum, a) => sum + a.balance, 0)
+      .filter((a: any) => a.type === 'Credit Card')
+      .reduce((sum: number, a: any) => sum + a.balance, 0)
 
-    // Fetch purchases for spending analysis
-    let totalSpending = 0
-    const spendingByCategory: Record<string, number> = {}
+    const checkingAccount = accounts.find((a: any) => a.type === 'Checking')
 
-    for (const account of accounts.filter((a) => a.type === 'Checking')) {
-      const purchases = await nessieService.getAccountPurchases(account._id)
-      for (const purchase of purchases) {
-        totalSpending += purchase.amount
-        // Would need to look up merchant category here
-        const category = 'General' // Simplified
-        spendingByCategory[category] = (spendingByCategory[category] || 0) + purchase.amount
-      }
-    }
-
-    // Fetch loans
+    // Fetch all data for checking account
+    let totalPurchases = 0
+    let monthlyIncome = 0
+    let monthlyBills = 0
     let loanDebt = 0
     let monthlyLoanPayments = 0
+    const spendingByCategory: Record<string, number> = {}
 
-    for (const account of accounts) {
-      const loans = await nessieService.getAccountLoans(account._id)
+    if (checkingAccount) {
+      // Get purchases
+      const purchases = await nessieService.getAccountPurchases(checkingAccount._id)
+      const merchants = await nessieService.getMerchants()
+      const merchantMap = new Map(merchants.map((m: any) => [m._id, m]))
+
+      for (const purchase of purchases) {
+        totalPurchases += purchase.amount
+        const merchant = merchantMap.get(purchase.merchant_id)
+        const category = merchant?.category || 'Other'
+        spendingByCategory[category] = (spendingByCategory[category] || 0) + purchase.amount
+      }
+
+      // Get deposits (income)
+      const deposits = await nessieService.getAccountDeposits(checkingAccount._id)
+      const salaryDeposits = deposits.filter((d: any) =>
+        d.description?.toLowerCase().includes('salary')
+      )
+      if (salaryDeposits.length > 0) {
+        monthlyIncome = salaryDeposits[0].amount // Most recent salary
+      }
+
+      // Get bills
+      const bills = await nessieService.getAccountBills(checkingAccount._id)
+      monthlyBills = bills
+        .filter((b: any) => b.status === 'recurring')
+        .reduce((sum: number, b: any) => sum + b.payment_amount, 0)
+
+      // Get loans
+      const loans = await nessieService.getAccountLoans(checkingAccount._id)
       for (const loan of loans) {
         loanDebt += loan.amount
         monthlyLoanPayments += loan.monthly_payment
       }
     }
 
-    // Estimate monthly spending (simplified - would need date range in production)
-    const monthlySpending = totalSpending / 3 // Assume 3 months of data
+    // Calculate monthly spending (purchases over ~6 months + recurring bills)
+    const monthsOfData = 6
+    const monthlyPurchases = totalPurchases / monthsOfData
+    const monthlySpending = monthlyPurchases + monthlyBills + monthlyLoanPayments
+
+    // Calculate spending volatility from category variance
+    const categoryValues = Object.values(spendingByCategory)
+    const avgCategory = categoryValues.reduce((a, b) => a + b, 0) / categoryValues.length || 0
+    const variance = categoryValues.reduce((sum, val) => sum + Math.pow(val - avgCategory, 2), 0) / categoryValues.length || 0
+    const spendingVolatility = Math.min(0.3, Math.sqrt(variance) / (avgCategory || 1) * 0.1 + 0.1)
 
     res.json({
       liquidAssets,
       creditDebt,
       loanDebt,
       monthlyLoanPayments,
-      monthlySpending,
+      monthlyIncome,
+      monthlyBills,
+      monthlySpending: Math.round(monthlySpending),
       spendingByCategory,
-      spendingVolatility: 0.15, // Would calculate from variance
+      spendingVolatility: Math.round(spendingVolatility * 100) / 100,
     })
   } catch (error) {
     console.error('Error generating financial profile:', error)

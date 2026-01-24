@@ -3,6 +3,9 @@ import axios from 'axios'
 const NESSIE_BASE_URL = process.env.NESSIE_BASE_URL || 'http://api.nessieisreal.com'
 const NESSIE_API_KEY = process.env.NESSIE_API_KEY || '4389318c54ddf318af62eda4ceed5f66'
 
+// Alex Morgan - comprehensive 12-month financial profile
+const DEFAULT_CUSTOMER_ID = '6975325e95150878eafe8c79'
+
 export class NessieService {
   private client = axios.create({
     baseURL: NESSIE_BASE_URL,
@@ -11,9 +14,9 @@ export class NessieService {
     },
   })
 
-  // Accounts
-  async getAccounts() {
-    const response = await this.client.get('/accounts')
+  // Accounts - defaults to demo user
+  async getAccounts(customerId: string = DEFAULT_CUSTOMER_ID) {
+    const response = await this.client.get(`/customers/${customerId}/accounts`)
     return response.data
   }
 
