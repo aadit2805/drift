@@ -41,8 +41,20 @@ export default function ResultsPage() {
   const [sensitivity, setSensitivity] = useState<SensitivityAnalysis | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [nSimulations, setNSimulations] = useState(10000)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Auth check
+  useEffect(() => {
+    const customerId = localStorage.getItem('customerId')
+    if (!customerId) {
+      router.push('/login')
+      return
+    }
+    setIsAuthenticated(true)
+  }, [router])
 
   useEffect(() => {
+    if (!isAuthenticated) return
     const storedData = localStorage.getItem('simulationResults')
 
     if (!storedData) {
@@ -65,7 +77,16 @@ export default function ResultsPage() {
       console.error('Failed to parse stored results:', err)
       setError('Failed to load simulation results. Please run a new simulation.')
     }
-  }, [])
+  }, [isAuthenticated])
+
+  // Show loading spinner while checking auth
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   if (error) {
     return (
