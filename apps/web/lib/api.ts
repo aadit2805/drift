@@ -75,4 +75,16 @@ export const runSensitivityAnalysis = async (request: SimulationRequest) => {
   return response.data
 }
 
+// Validate customer ID
+export const validateCustomer = async (customerId: string) => {
+  const response = await api.post('/api/validate-customer', { customerId })
+  return response.data
+}
+
+// Get accounts
+export const getAccounts = async () => {
+  const response = await api.get('/api/accounts')
+  return response.data
+}
+
 export default api
