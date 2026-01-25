@@ -34,12 +34,12 @@ export function GoalInput({ onSubmit, isLoading = false }: GoalInputProps) {
           placeholder="Describe your financial goal in plain English..."
           rows={3}
           disabled={isLoading}
-          className="w-full px-4 py-3 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 pr-12 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg focus:outline-none focus:border-[var(--accent)] resize-none disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-[var(--text-tertiary)] transition-colors duration-150"
         />
         <button
           type="submit"
           disabled={!goal.trim() || isLoading}
-          className="absolute right-3 bottom-3 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="absolute right-3 bottom-3 p-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-150"
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -51,14 +51,14 @@ export function GoalInput({ onSubmit, isLoading = false }: GoalInputProps) {
 
       {/* Quick suggestions */}
       <div className="mt-4">
-        <p className="text-sm text-slate-500 mb-2">Quick suggestions:</p>
+        <p className="text-sm text-[var(--text-secondary)] mb-2">Quick suggestions:</p>
         <div className="flex flex-wrap gap-2">
           {suggestions.map((suggestion, index) => (
             <button
               key={index}
               onClick={() => setGoal(suggestion)}
               disabled={isLoading}
-              className="text-sm px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700 transition-colors disabled:opacity-50"
+              className="text-sm px-3 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] rounded-full text-[var(--text-secondary)] transition-colors duration-150 disabled:opacity-50"
             >
               {suggestion.length > 40 ? `${suggestion.slice(0, 40)}...` : suggestion}
             </button>

@@ -30,6 +30,10 @@
     --warning-muted: rgba(234, 179, 8, 0.1);
     --error: #ef4444;
     --error-muted: rgba(239, 68, 68, 0.1);
+
+    /* Red accent for semantic use (alias for error) */
+    --accent-red: #ef4444;
+    --accent-red-muted: rgba(239, 68, 68, 0.1);
   }
 }
 
@@ -80,9 +84,14 @@ body {
   font-size: 14px;
   font-weight: 500;
   border-radius: 6px;
-  transition: all 150ms ease;
+  transition: transform 150ms ease, opacity 150ms ease, box-shadow 150ms ease, background-color 150ms ease, border-color 150ms ease;
   cursor: pointer;
   border: none;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent);
 }
 
 .btn-primary {
@@ -92,6 +101,8 @@ body {
 
 .btn-primary:hover {
   opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
 .btn-secondary {
@@ -103,6 +114,17 @@ body {
 .btn-secondary:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  .btn-primary:hover,
+  .btn-secondary:hover {
+    transform: none;
+  }
 }
 
 /* Inputs - clean, no shadows */
@@ -131,6 +153,21 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: 8px;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .card:hover {
+    transform: none;
+  }
 }
 
 /* Links */
@@ -476,7 +513,7 @@ a {
   border-radius: 6px;
   font-size: 13px;
   color: var(--text-tertiary);
-  transition: all 200ms ease;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 .step-indicator.active {
@@ -521,4 +558,23 @@ a {
   font-size: 12px;
   font-feature-settings: "tnum" 1;
   color: var(--text-tertiary);
+}
+
+/* Hero glow - subtle atmospheric effect */
+.hero-glow {
+  position: absolute;
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(59, 130, 246, 0.15) 0%, rgba(239, 68, 68, 0.08) 50%, transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-glow {
+    /* Keep static for reduced motion - no animation to disable */
+  }
 }
