@@ -103,7 +103,7 @@ export function SensitivityTable({ baseProbability, sensitivityData, recommendat
               <td className="font-medium tabular-nums">{Math.round(s.newProb * 100)}%</td>
               <td>
                 <span className={`badge ${badgeClass}`}>
-                  <Icon className="w-3 h-3" />
+                  <Icon className={`w-3 h-3 ${isPositive ? 'text-[var(--success)]' : ''}`} />
                   {isPositive ? '+' : ''}{impactRounded}%
                 </span>
               </td>
@@ -134,11 +134,18 @@ export function SensitivityTable({ baseProbability, sensitivityData, recommendat
                   }
 
                   return (
-                    <div key={i} className="p-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
+                    <div
+                      key={i}
+                      className={`p-3 rounded-lg border bg-[var(--bg-tertiary)] ${
+                        isPositive
+                          ? 'border-[var(--success)]/70 shadow-[0_0_12px_rgba(34,197,94,0.35)]'
+                          : 'border-[var(--border-primary)]'
+                      }`}
+                    >
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium">{action.label}</span>
                         <span className={`badge ${badgeClass}`}>
-                          <Icon className="w-3 h-3" />
+                          <Icon className={`w-3 h-3 ${isPositive ? 'text-[var(--success)]' : ''}`} />
                           {isPositive ? '+' : ''}{impactRounded}%
                         </span>
                       </div>

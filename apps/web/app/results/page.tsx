@@ -11,6 +11,21 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions, UserInputs, Assumptions } from '@/types'
 
+const HARDCODED_ASSUMPTIONS: Assumptions = {
+  annualReturnMean: 0.07,
+  annualReturnStd: 0.15,
+  inflationRate: 0.025,
+  inflationVolatility: 0.01,
+  annualRaiseMean: 0.03,
+  annualRaiseFrequency: 'annual',
+  promotionProbabilitySemiAnnual: 0.08,
+  promotionRaiseMean: 0.06,
+  emergencyProbabilityMonthly: 0.08,
+  emergencyAmountRange: '$500 - $2,000',
+  incomeVolatility: 0.05,
+  expenseVolatility: 0.12,
+}
+
 function formatCurrency(value: number): string {
   const num = Number(value) || 0
   const rounded = Math.round(num)
@@ -53,6 +68,11 @@ function formatCurrencyWithSign(value: number): string {
     return `-$${abs.toLocaleString()}`
   }
   return `+$${rounded.toLocaleString()}`
+}
+
+function formatPercent(value: number, digits = 0): string {
+  const pct = (Number(value) || 0) * 100
+  return `${pct.toFixed(digits).replace(/\.0$/, '')}%`
 }
 
 interface Results {
@@ -128,8 +148,9 @@ export default function ResultsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
         <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-muted-foreground">Loading (100,000 simulations)</p>
       </div>
     )
   }
@@ -155,8 +176,9 @@ export default function ResultsPage() {
 
   if (!results) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
         <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-muted-foreground">Preparing results (100,000 simulations)</p>
       </div>
     )
   }
@@ -272,6 +294,7 @@ export default function ResultsPage() {
   const goalNeedsClarification = parsedGoal?.clarifyingQuestions && parsedGoal.clarifyingQuestions.length > 0
 
   const effectiveIncome = financialProfile?.monthlyIncome || 0
+  const assumptions = results.assumptions || HARDCODED_ASSUMPTIONS
 
   return (
     <div className="min-h-screen">
@@ -365,7 +388,7 @@ export default function ResultsPage() {
                     <td className="font-medium tabular-nums">{formatCurrency(row.value)}</td>
                     <td>
                       <Badge variant={positive ? 'success' : 'error'}>
-                        {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                        {positive ? <ArrowUpRight className="w-3 h-3 text-[var(--success)]" /> : <ArrowDownRight className="w-3 h-3" />}
                         {formatCurrencyWithSign(diff)}
                       </Badge>
                     </td>
@@ -383,10 +406,10 @@ export default function ResultsPage() {
         </Card>
 
         {/* Sensitivity */}
-        <Card className="p-6 mb-8">
+        <Card className="p-6 mb-8 border-[var(--accent)]/40 shadow-sm bg-background/80">
           <div className="mb-6">
-            <h2 className="font-medium">What-if analysis</h2>
-            <p className="text-sm text-muted-foreground">How changes affect your probability</p>
+            <h2 className="font-medium">What-if Analysis</h2>
+            <p className="text-sm text-muted-foreground">Scenario impacts to help achive your goal</p>
           </div>
           <SensitivityTable
             baseProbability={results.successProbability}
@@ -396,33 +419,78 @@ export default function ResultsPage() {
           />
         </Card>
 
-        {/* Assumptions */}
+        {/* Account analysis & model assumptions */}
         <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-medium">Assumptions</h2>
-              <p className="text-sm text-muted-foreground">How we interpreted your data and goal</p>
+              <h2 className="font-medium">Account analysis & assumptions</h2>
+              <p className="text-sm text-muted-foreground">What we read from your accounts and the model settings driving results</p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-6">
-            {/* Key Metrics */}
-            <div className="p-4 rounded-lg border border-[var(--border-primary)]">
-              <p className="text-xs text-muted-foreground mb-2">Monthly Income</p>
-              <p className="text-2xl font-medium tabular-nums">{formatCurrencyLocal(effectiveIncome)}</p>
-              <p className="text-xs text-muted-foreground mt-1">per month</p>
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="p-4 rounded-lg border border-[var(--border-primary)] bg-muted/30">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Account snapshot</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="border-l-4 border-[var(--accent)] pl-3">
+                  <p className="text-xs text-muted-foreground">Monthly income</p>
+                  <p className="text-xl font-medium tabular-nums">{formatCurrencyLocal(effectiveIncome)}</p>
+                </div>
+                <div className="border-l-4 border-[var(--warning)] pl-3">
+                  <p className="text-xs text-muted-foreground">Monthly spending</p>
+                  <p className="text-xl font-medium tabular-nums">{financialProfile ? formatCurrencyLocal(financialProfile.monthlySpending || 0) : 'N/A'}</p>
+                  {financialProfile?.spendingVolatility !== undefined && (
+                    <p className="text-xs text-[var(--text-tertiary)]">±{formatPercent(financialProfile.spendingVolatility)}</p>
+                  )}
+                </div>
+                <div className="border-l-4 border-[var(--success)] pl-3">
+                  <p className="text-xs text-muted-foreground">Liquid assets</p>
+                  <p className="text-xl font-medium tabular-nums">{financialProfile ? formatCurrencyLocal(financialProfile.liquidAssets || 0) : 'N/A'}</p>
+                </div>
+                <div className="border-l-4 border-[var(--error)] pl-3">
+                  <p className="text-xs text-muted-foreground">Debt (credit + loans)</p>
+                  <p className="text-xl font-medium tabular-nums">{financialProfile ? formatCurrencyLocal((financialProfile.creditDebt || 0) + (financialProfile.loanDebt || 0)) : 'N/A'}</p>
+                  {financialProfile && (
+                    <p className="text-xs text-[var(--text-tertiary)]">Monthly payments {formatCurrencyLocal(financialProfile.monthlyLoanPayments || 0)}</p>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="p-4 rounded-lg border border-[var(--border-primary)]">
-              <p className="text-xs text-muted-foreground mb-2">Monthly Spending</p>
-              <p className="text-2xl font-medium tabular-nums">
-                {financialProfile ? formatCurrencyLocal(financialProfile.monthlySpending || 0) : 'N/A'}
-              </p>
-              {financialProfile?.spendingVolatility !== undefined && (
-                <>
-                  <p className="text-xs text-muted-foreground mt-1">Volatility {Math.round(financialProfile.spendingVolatility * 100)}%</p>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">±{Math.round(financialProfile.spendingVolatility * 100)}% volatility</p>
-                </>
-              )}
+
+            <div className="p-4 rounded-lg border border-[var(--border-primary)] bg-muted/30">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Model assumptions</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="border-l-4 border-[var(--accent)] pl-3">
+                  <p className="text-xs text-muted-foreground">Investment returns</p>
+                  <p className="text-xl font-medium tabular-nums">{formatPercent(assumptions.annualReturnMean, 1)} ± {formatPercent(assumptions.annualReturnStd, 1)}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">annualized mean &amp; volatility</p>
+                </div>
+                <div className="border-l-4 border-[var(--warning)] pl-3">
+                  <p className="text-xs text-muted-foreground">Inflation</p>
+                  <p className="text-xl font-medium tabular-nums">{formatPercent(assumptions.inflationRate, 1)}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Volatility {formatPercent(assumptions.inflationVolatility, 1)}</p>
+                </div>
+                <div className="border-l-4 border-[var(--success)] pl-3">
+                  <p className="text-xs text-muted-foreground">Income growth</p>
+                  <p className="text-xl font-medium tabular-nums">Raises {formatPercent(assumptions.annualRaiseMean, 1)} {assumptions.annualRaiseFrequency}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Promo {formatPercent(assumptions.promotionProbabilitySemiAnnual, 1)} semi-annual, +{formatPercent(assumptions.promotionRaiseMean, 1)}</p>
+                </div>
+                <div className="border-l-4 border-[var(--error)] pl-3">
+                  <p className="text-xs text-muted-foreground">Emergency events</p>
+                  <p className="text-xl font-medium tabular-nums">{formatPercent(assumptions.emergencyProbabilityMonthly, 1)} monthly</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Amount {assumptions.emergencyAmountRange}</p>
+                </div>
+                <div className="border-l-4 border-[var(--accent)] pl-3">
+                  <p className="text-xs text-muted-foreground">Volatility</p>
+                  <p className="text-xl font-medium tabular-nums">Income {formatPercent(assumptions.incomeVolatility, 1)}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Expenses {formatPercent(assumptions.expenseVolatility, 1)}</p>
+                </div>
+                <div className="border-l-4 border-muted-foreground pl-3">
+                  <p className="text-xs text-muted-foreground">Simulation scale</p>
+                  <p className="text-xl font-medium tabular-nums">{nSimulations.toLocaleString()}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Monte Carlo runs</p>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
