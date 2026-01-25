@@ -62,11 +62,19 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen flex">
+      {/* Mobile header - frosted glass */}
+      <header className="lg:hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
+        <Link href="/" className="text-lg font-semibold tracking-tight">
+          Drift
+        </Link>
+        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Exit
+        </Link>
+      </header>
       {/* Sidebar */}
-      <div className="hidden lg:block w-64 border-r border-border p-6">
-        <Link href="/" className="flex items-center gap-2 mb-12">
-          <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-          <span className="font-medium">Drift</span>
+      <div className="hidden lg:flex lg:flex-col w-64 border-r border-border p-6 bg-card/50 backdrop-blur-sm">
+        <Link href="/" className="text-lg font-semibold tracking-tight mb-12 block">
+          Drift
         </Link>
 
         <div className="space-y-4">
@@ -93,7 +101,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 pt-24 lg:pt-8">
         <div className="w-full max-w-md animate-fade">
           {/* Mobile progress */}
           <div className="lg:hidden flex gap-2 mb-8">

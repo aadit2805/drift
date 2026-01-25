@@ -320,10 +320,16 @@ export default function SimulationPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
-          <Link href="/" className="flex items-center gap-2 mb-12 justify-center">
-            <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-            <span className="font-medium">Drift</span>
-          </Link>
+          <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
+            <Link href="/" className="text-lg font-semibold tracking-tight">
+              Drift
+            </Link>
+            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Exit
+            </Link>
+          </header>
+
+          <div className="pt-16"></div>
 
           <Card className="p-6">
             <div className="flex items-center gap-3 text-[var(--error)] mb-4">
@@ -348,17 +354,18 @@ export default function SimulationPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-4xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-            <span className="font-medium">Drift</span>
+        {/* Header - frosted glass */}
+        <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
+          <Link href="/" className="text-lg font-semibold tracking-tight">
+            Drift
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Processing</span>
             <span className="text-sm font-mono tabular-nums">{Math.round(progress)}%</span>
           </div>
-        </div>
+        </header>
+
+        <div className="pt-16"></div>
 
         {/* Main Progress Bar */}
         <div className="progress-track mb-8" style={{ height: '3px' }}>

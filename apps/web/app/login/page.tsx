@@ -49,10 +49,6 @@ export default function LoginPage() {
     }
   }
 
-  const useDemoAccount = () => {
-    setCustomerId('697541cf95150878eafea4ff')
-  }
-
   if (checkingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -66,9 +62,8 @@ export default function LoginPage() {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-card items-center justify-center p-12">
         <div className="max-w-md">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-foreground rounded-lg" />
-            <span className="text-2xl font-semibold">Drift</span>
+          <div className="mb-8">
+            <span className="text-lg font-semibold tracking-tight">Drift</span>
           </div>
           <h1 className="text-4xl font-medium mb-4">
             See your financial future with clarity
@@ -82,9 +77,8 @@ export default function LoginPage() {
       {/* Right side - Login form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-6 h-6 bg-foreground rounded" />
-            <span className="font-medium">Drift</span>
+          <div className="lg:hidden mb-8">
+            <span className="text-lg font-semibold tracking-tight">Drift</span>
           </div>
 
           <h2 className="text-2xl font-medium mb-2">Sign in</h2>
@@ -136,16 +130,7 @@ export default function LoginPage() {
               )}
             </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={useDemoAccount}
-              disabled={loading}
-              className="w-full"
-            >
-              Use Demo Account
-            </Button>
-          </form>
+                      </form>
 
           <p className="text-xs text-muted-foreground text-center mt-8">
             This app uses the Capital One Nessie API for demo purposes.

@@ -128,30 +128,27 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-              <span className="font-medium">Drift</span>
-            </Link>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-muted-foreground">Dashboard</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              {customer?.first_name} {customer?.last_name}
-            </span>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4" />
-              Sign out
-            </Button>
-          </div>
+      {/* Header - frosted glass */}
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-lg font-semibold tracking-tight">
+            Drift
+          </Link>
+          <span className="text-muted-foreground/50">/</span>
+          <span className="text-sm text-muted-foreground">Dashboard</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground hidden sm:inline">
+            {customer?.first_name} {customer?.last_name}
+          </span>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </Button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-6 pt-24 pb-8">
         {/* Welcome */}
         <div className="mb-8">
           <h1 className="text-2xl font-medium mb-2">
