@@ -7,6 +7,8 @@ import { Check, AlertCircle } from 'lucide-react'
 import { getFinancialProfile, parseGoal, runSimulation, runSensitivityAnalysis } from '@/lib/api'
 import type { SimulationRequest, SimulationResults, SensitivityAnalysis, FinancialProfile, ParsedGoal } from '@/types'
 import { MonteCarloVisualization, VisualizationConfig } from '@/components/MonteCarloVisualization'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 type Phase = 'idle' | 'loading' | 'parsing' | 'simulating' | 'sensitivity' | 'complete'
 
@@ -35,13 +37,10 @@ export default function SimulationPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const vizStartTimeRef = useRef<number | null>(null)
 
-  // Visualization config - will be populated when we have financial data
   const [vizConfig, setVizConfig] = useState<VisualizationConfig | null>(null)
 
-  // Minimum visualization duration (10s for particle animation)
   const MIN_VIZ_DURATION = 10000
 
-  // Auth check
   useEffect(() => {
     const customerId = localStorage.getItem('customerId')
     if (!customerId) {
@@ -73,7 +72,6 @@ export default function SimulationPage() {
 
     const runFullSimulation = async () => {
       try {
-        // Get user inputs and customer ID from localStorage
         const storedInputs = localStorage.getItem('userInputs')
         const customerId = localStorage.getItem('customerId')
         if (!storedInputs) {
@@ -89,7 +87,6 @@ export default function SimulationPage() {
         setProgress(5)
         setPhase('loading')
 
-        // Step 1: Fetch financial profile from Nessie
         updateStep(0, 'active')
         let financialProfile: FinancialProfile
         try {
@@ -98,7 +95,6 @@ export default function SimulationPage() {
           setProgress(25)
         } catch (err) {
           console.error('Failed to fetch financial profile:', err)
-          // Use fallback values if Nessie API fails
           financialProfile = {
             liquidAssets: 5000,
             creditDebt: 2000,
@@ -114,7 +110,6 @@ export default function SimulationPage() {
           setProgress(25)
         }
 
-        // Step 2: Parse the goal using LLM
         setPhase('parsing')
         updateStep(1, 'active')
         let parsedGoal: ParsedGoal
@@ -139,7 +134,6 @@ export default function SimulationPage() {
           return
         }
 
-        // Set up visualization config now that we have financial data and goal
         const config: VisualizationConfig = {
           nPaths: 100,
           months: parsedGoal.timelineMonths,
@@ -152,14 +146,11 @@ export default function SimulationPage() {
         }
         setVizConfig(config)
 
-        // Step 3: Run Monte Carlo simulation
         setPhase('simulating')
         updateStep(2, 'active')
 
-        // Track when visualization starts for minimum duration
         vizStartTimeRef.current = performance.now()
 
-        // Simulation counter that syncs with visualization
         const simInterval = setInterval(() => {
           setSimCount(prev => Math.min(prev + Math.floor(Math.random() * 400) + 200, 100000))
         }, 100)
@@ -187,8 +178,6 @@ export default function SimulationPage() {
           clearInterval(simInterval)
           setSimCount(100000)
           setSimCount(10000)
-          // Update backend stats for visualization
-          // successProbability is already a decimal (0-1), not a percentage
           setBackendStats({
             successRate: simulationResults.successProbability,
             expectedValue: simulationResults.medianOutcome,
@@ -203,7 +192,6 @@ export default function SimulationPage() {
           return
         }
 
-        // Step 4: Run sensitivity analysis
         setPhase('sensitivity')
         updateStep(3, 'active')
         let sensitivityResults: SensitivityAnalysis | null = null
@@ -219,7 +207,6 @@ export default function SimulationPage() {
 
         setPhase('complete')
 
-        // Store results in localStorage
         const resultsData = {
           results: {
             successProbability: simulationResults.successProbability,
@@ -241,8 +228,6 @@ export default function SimulationPage() {
         }
         localStorage.setItem('simulationResults', JSON.stringify(resultsData))
 
-        // Navigate to results after particle animation completes
-        // Ensure minimum visualization duration for the full particle animation
         const vizElapsed = vizStartTimeRef.current ? performance.now() - vizStartTimeRef.current : 0
         const remainingTime = Math.max(0, MIN_VIZ_DURATION - vizElapsed) + 1500
 
@@ -256,11 +241,10 @@ export default function SimulationPage() {
     runFullSimulation()
   }, [router, isAuthenticated])
 
-  // Show loading spinner while checking auth
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -270,28 +254,25 @@ export default function SimulationPage() {
       <div className="min-h-screen flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
           <Link href="/" className="flex items-center gap-2 mb-12 justify-center">
-            <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+            <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
             <span className="font-medium">FutureCast</span>
           </Link>
 
-          <div className="card p-6">
+          <Card className="p-6">
             <div className="flex items-center gap-3 text-[var(--error)] mb-4">
               <AlertCircle className="w-5 h-5" />
               <span className="font-medium">Simulation Error</span>
             </div>
-            <p className="text-[var(--text-secondary)] mb-6">{error}</p>
+            <p className="text-muted-foreground mb-6">{error}</p>
             <div className="flex gap-3">
-              <Link href="/onboarding" className="btn btn-secondary flex-1 justify-center">
-                Start over
-              </Link>
-              <button
-                onClick={() => window.location.reload()}
-                className="btn btn-primary flex-1 justify-center"
-              >
+              <Button variant="outline" asChild className="flex-1">
+                <Link href="/onboarding">Start over</Link>
+              </Button>
+              <Button onClick={() => window.location.reload()} className="flex-1">
                 Retry
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     )
@@ -303,12 +284,12 @@ export default function SimulationPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+            <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
             <span className="font-medium">FutureCast</span>
           </Link>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--text-secondary)]">Processing</span>
-            <span className="text-sm font-mono tabular-nums text-[var(--text-primary)]">{Math.round(progress)}%</span>
+            <span className="text-sm text-muted-foreground">Processing</span>
+            <span className="text-sm font-mono tabular-nums">{Math.round(progress)}%</span>
           </div>
         </div>
 
@@ -332,12 +313,12 @@ export default function SimulationPage() {
 
         {/* Placeholder while loading config */}
         {!vizConfig && (
-          <div className="card p-8 flex items-center justify-center" style={{ minHeight: '400px' }}>
+          <Card className="p-8 flex items-center justify-center" style={{ minHeight: '400px' }}>
             <div className="text-center">
-              <div className="w-8 h-8 border-2 border-[var(--text-tertiary)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-[var(--text-secondary)]">Loading financial data...</p>
+              <div className="w-8 h-8 border-2 border-muted-foreground border-t-[hsl(var(--accent))] rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading financial data...</p>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Step Indicators (Secondary) */}
@@ -368,12 +349,12 @@ export default function SimulationPage() {
                 </div>
                 <span className="flex-1">{step.label}</span>
                 {stepStatus.status === 'active' && step.label.includes('Monte Carlo') && (
-                  <span className="step-counter text-[var(--accent)]">
+                  <span className="step-counter text-[hsl(var(--accent))]">
                     {simCount.toLocaleString()}/10,000
                   </span>
                 )}
                 {stepStatus.message && (
-                  <span className="text-xs text-[var(--text-tertiary)]">({stepStatus.message})</span>
+                  <span className="text-xs text-muted-foreground">({stepStatus.message})</span>
                 )}
               </div>
             )
@@ -381,7 +362,7 @@ export default function SimulationPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-[var(--text-tertiary)] mt-8">
+        <p className="text-center text-xs text-muted-foreground mt-8">
           Monte Carlo simulation computing 10,000 scenarios with your financial data
         </p>
       </div>
