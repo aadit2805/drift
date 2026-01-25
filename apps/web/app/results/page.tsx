@@ -9,7 +9,7 @@ import { SensitivityTable } from '@/components/SensitivityTable'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions } from '@/types'
+import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions, UserInputs, Assumptions } from '@/types'
 
 function formatCurrency(value: number): string {
   const num = Number(value) || 0
