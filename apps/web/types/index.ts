@@ -174,3 +174,54 @@ export interface SensitivityAnalysis {
   mostImpactful: string
   recommendations: string[]
 }
+
+// HPC Cluster Types
+export interface ClusterNode {
+  id: string               // "node-01" through "node-08"
+  status: 'idle' | 'busy' | 'offline'
+  currentJobId?: string
+  cpuUtilization: number
+  memoryUtilization: number
+  simulationsProcessed: number
+}
+
+export interface NodeProgress {
+  progress: number
+  simulations: number
+}
+
+export interface Job {
+  id: string
+  status: 'queued' | 'allocated' | 'running' | 'complete' | 'failed'
+  progress: number
+  allocatedNodes: string[]
+  simulationsTotal: number
+  simulationsComplete: number
+  queuePosition?: number
+  estimatedTimeRemaining?: number
+  createdAt: string
+  startedAt?: string
+  completedAt?: string
+  nodeProgress: Record<string, NodeProgress>
+  error?: string
+  results?: SimulationResults
+  sensitivityResults?: SensitivityAnalysis
+}
+
+export interface ClusterStatus {
+  nodes: ClusterNode[]
+  totalNodes: number
+  activeNodes: number
+  idleNodes: number
+  offlineNodes: number
+  cpuUtilization: number
+  memoryUtilization: number
+  queueDepth: number
+  activeJobs: number
+}
+
+export interface JobSubmitResponse {
+  jobId: string
+  queuePosition: number
+  estimatedWait: number
+}
