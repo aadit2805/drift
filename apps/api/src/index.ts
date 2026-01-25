@@ -6,6 +6,7 @@ import simulationRouter from './routes/simulation.js'
 import llmRouter from './routes/llm.js'
 import whatIfRouter from './routes/whatif.js'
 import aiRouter from './routes/ai.js'
+import jobsRouter from './routes/jobs.js'
 
 // Load .env from monorepo root (turbo runs from root, so cwd is root)
 dotenv.config()
@@ -31,6 +32,7 @@ app.use('/api', simulationRouter)
 app.use('/api', llmRouter)
 app.use('/api', whatIfRouter)
 app.use('/api/ai', aiRouter)
+app.use('/api', jobsRouter) // HPC cluster job management
 
 // Error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

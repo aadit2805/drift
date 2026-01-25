@@ -6,6 +6,9 @@ import type {
   ParsedGoal,
   NessieAccount,
   NessiePurchase,
+  Job,
+  ClusterStatus,
+  JobSubmitResponse,
 } from '@/types'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
@@ -188,6 +191,32 @@ export const sendVoiceGoal = async (
     conversationHistory,
   })
 
+  return response.data
+}
+
+// HPC Cluster Job API
+
+// Submit a new job to the cluster
+export const submitJob = async (request: SimulationRequest): Promise<JobSubmitResponse> => {
+  const response = await api.post('/api/jobs', request)
+  return response.data
+}
+
+// Get job status
+export const getJobStatus = async (jobId: string): Promise<Job> => {
+  const response = await api.get(`/api/jobs/${jobId}`)
+  return response.data
+}
+
+// Cancel a job
+export const cancelJob = async (jobId: string): Promise<{ success: boolean; message: string }> => {
+  const response = await api.delete(`/api/jobs/${jobId}`)
+  return response.data
+}
+
+// Get cluster status
+export const getClusterStatus = async (): Promise<ClusterStatus> => {
+  const response = await api.get('/api/cluster/status')
   return response.data
 }
 

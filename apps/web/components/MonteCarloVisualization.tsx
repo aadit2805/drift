@@ -70,14 +70,24 @@ export function MonteCarloVisualization({
   backendSuccessRate,
   backendExpectedValue,
   totalSimulations = 100000,
+  onVisualizationComplete,
 }: MonteCarloVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
   const particlesRef = useRef<Particle[]>([])
   const initializedRef = useRef(false)
+  const completedRef = useRef(false)
 
   const [animationProgress, setAnimationProgress] = useState(0) // 0-1
+
+  // Call onVisualizationComplete when animation finishes
+  useEffect(() => {
+    if (animationProgress >= 1 && !completedRef.current && onVisualizationComplete) {
+      completedRef.current = true
+      onVisualizationComplete()
+    }
+  }, [animationProgress, onVisualizationComplete])
 
   // Check if we have real backend stats
   const hasBackendStats = backendSuccessRate !== undefined
