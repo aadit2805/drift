@@ -132,6 +132,33 @@ export class ElevenLabsService {
     return !!process.env.ELEVENLABS_API_KEY
   }
 
+  async transcribeAudio(audioBuffer: Buffer): Promise<string> {
+    if (!this.client) {
+      throw new Error('ElevenLabs API key not configured')
+    }
+
+    try {
+      // Create a Blob from the buffer for the API
+      const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' })
+
+      const result = await this.client.speechToText.convert({
+        file: audioBlob,
+        model_id: 'scribe_v1',
+        language_code: 'en',
+      })
+
+      // Extract the transcript text from the response
+      if (result && result.text) {
+        return result.text
+      }
+
+      throw new Error('No transcript returned')
+    } catch (error) {
+      console.error('ElevenLabs transcription error:', error)
+      throw error
+    }
+  }
+
   getAvailableVoices(): { id: string; name: string }[] {
     return Object.entries(VOICE_OPTIONS).map(([name, id]) => ({
       id,

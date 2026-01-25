@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Mic, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { transcribeAudio } from '@/lib/api'
 
 interface UserInputs {
   age: string
@@ -23,6 +24,10 @@ export default function OnboardingPage() {
     goal: '',
   })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
     const customerId = localStorage.getItem('customerId')
@@ -58,6 +63,59 @@ export default function OnboardingPage() {
     if (step === 1) return inputs.age !== ''
     if (step === 2) return inputs.goal.trim() !== ''
     return false
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+      mediaRecorderRef.current = mediaRecorder
+      chunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        stream.getTracks().forEach(track => track.stop())
+
+        // Send to ElevenLabs for transcription
+        setIsTranscribing(true)
+        try {
+          const transcript = await transcribeAudio(audioBlob)
+          if (transcript) {
+            setInputs(prev => ({ ...prev, goal: transcript }))
+          }
+        } catch (err) {
+          console.error('Transcription failed:', err)
+        } finally {
+          setIsTranscribing(false)
+        }
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      console.error('Failed to start recording:', err)
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording()
+    } else {
+      startRecording()
+    }
   }
 
   return (
@@ -140,15 +198,42 @@ export default function OnboardingPage() {
 
               <div>
                 <label htmlFor="goal" className="block text-sm font-medium mb-2">Goal</label>
-                <Textarea
-                  id="goal"
-                  value={inputs.goal}
-                  onChange={(e) => setInputs({ ...inputs, goal: e.target.value })}
-                  placeholder="Save $50,000 for a house down payment in 3 years"
-                  rows={3}
-                  className="resize-none"
-                />
-                <p className="text-xs text-muted-foreground mt-2">Our AI extracts amount, timeline, and type</p>
+                <div className="relative">
+                  <Textarea
+                    id="goal"
+                    value={inputs.goal}
+                    onChange={(e) => setInputs({ ...inputs, goal: e.target.value })}
+                    placeholder="Save $50,000 for a house down payment in 3 years"
+                    rows={3}
+                    className="resize-none pr-12"
+                    disabled={isRecording || isTranscribing}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleRecording}
+                    disabled={isTranscribing}
+                    className={`absolute right-2 top-2 h-8 w-8 ${
+                      isRecording
+                        ? 'text-[var(--error)] bg-[var(--error)]/10 animate-pulse'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {isTranscribing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Mic className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {isRecording
+                    ? 'Listening... click mic to stop'
+                    : isTranscribing
+                    ? 'Transcribing your voice...'
+                    : 'Type or click the mic to speak your goal'}
+                </p>
               </div>
 
               <div className="mt-6">

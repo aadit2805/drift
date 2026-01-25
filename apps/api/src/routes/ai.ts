@@ -20,6 +20,10 @@ interface AudioRequestBody {
   voice?: 'rachel' | 'adam' | 'josh' | 'bella'
 }
 
+interface TranscribeRequestBody {
+  audio: string // base64-encoded audio
+}
+
 // Generate narrative from simulation results using Gemini
 router.post('/generate-narrative', async (req: Request, res: Response) => {
   try {
@@ -106,6 +110,39 @@ router.post('/stream-audio', async (req: Request, res: Response) => {
     console.error('Audio streaming error:', error)
     res.status(500).json({
       error: 'Failed to stream audio',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
+// Transcribe audio using ElevenLabs Speech-to-Text
+router.post('/transcribe', async (req: Request, res: Response) => {
+  try {
+    const { audio } = req.body as TranscribeRequestBody
+
+    if (!audio) {
+      return res.status(400).json({
+        error: 'Missing required field: audio (base64-encoded)',
+      })
+    }
+
+    if (!elevenLabsService.isConfigured()) {
+      return res.status(503).json({
+        error: 'ElevenLabs API not configured',
+        message: 'Please set ELEVENLABS_API_KEY in environment variables',
+      })
+    }
+
+    // Decode base64 audio to buffer
+    const audioBuffer = Buffer.from(audio, 'base64')
+
+    const transcript = await elevenLabsService.transcribeAudio(audioBuffer)
+
+    res.json({ transcript })
+  } catch (error) {
+    console.error('Transcription error:', error)
+    res.status(500).json({
+      error: 'Failed to transcribe audio',
       message: error instanceof Error ? error.message : 'Unknown error',
     })
   }

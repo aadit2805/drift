@@ -137,4 +137,16 @@ export const getAvailableVoices = async (): Promise<{
   return response.data
 }
 
+// Transcribe audio using ElevenLabs Speech-to-Text
+export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
+  // Convert blob to base64
+  const arrayBuffer = await audioBlob.arrayBuffer()
+  const base64 = btoa(
+    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+  )
+
+  const response = await api.post('/api/ai/transcribe', { audio: base64 })
+  return response.data.transcript
+}
+
 export default api
