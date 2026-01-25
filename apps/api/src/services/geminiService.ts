@@ -552,35 +552,56 @@ export class GeminiResultsConversation {
     const { simulationResults, financialProfile, goal } = context
     const successPercent = Math.round(simulationResults.successProbability * 100)
 
+    // Format all spending categories with monthly amounts
+    const categoryEntries = financialProfile.spendingByCategory
+      ? Object.entries(financialProfile.spendingByCategory).sort((a, b) => b[1] - a[1])
+      : []
+    const allCategories = categoryEntries.length > 0
+      ? categoryEntries
+          .map(([cat, amount]) => `  - ${cat}: $${Math.round(amount / 12)}/mo ($${Math.round(amount)}/yr)`)
+          .join('\n')
+      : 'No category data available - purchases may not be linked to merchants with categories'
+
+    const monthlySavings = (financialProfile.monthlyIncome || 0) - (financialProfile.monthlySpending || 0)
+    const totalDebt = (financialProfile.creditDebt || 0) + (financialProfile.loanDebt || 0)
+
     const systemPrompt = `You are Drift, a friendly financial advisor chatbot. The user has just completed a Monte Carlo simulation of their financial goal and wants to discuss the results with you.
 
-CONTEXT:
+SIMULATION RESULTS:
 - Goal: ${goal.goalType} - save $${goal.targetAmount.toLocaleString()} in ${goal.timelineMonths} months (${Math.round(goal.timelineMonths / 12 * 10) / 10} years)
 - Success Probability: ${successPercent}%
 - Expected Outcome (median): $${Math.round(simulationResults.medianOutcome).toLocaleString()}
 - 10th percentile (worst likely): $${Math.round(simulationResults.percentiles.p10).toLocaleString()}
+- 25th percentile: $${Math.round(simulationResults.percentiles.p25).toLocaleString()}
+- 75th percentile: $${Math.round(simulationResults.percentiles.p75).toLocaleString()}
 - 90th percentile (best likely): $${Math.round(simulationResults.percentiles.p90).toLocaleString()}
 - Gap from goal: $${Math.round(simulationResults.medianOutcome - goal.targetAmount).toLocaleString()}
 
 FINANCIAL PROFILE:
 - Monthly Income: $${(financialProfile.monthlyIncome || 0).toLocaleString()}
 - Monthly Spending: $${(financialProfile.monthlySpending || 0).toLocaleString()}
+- Monthly Savings (income - spending): $${monthlySavings.toLocaleString()}
+- Savings Rate: ${financialProfile.monthlyIncome ? Math.round((monthlySavings / financialProfile.monthlyIncome) * 100) : 0}%
 - Liquid Assets: $${(financialProfile.liquidAssets || 0).toLocaleString()}
-- Credit Debt: $${(financialProfile.creditDebt || 0).toLocaleString()}
-- Loan Debt: $${(financialProfile.loanDebt || 0).toLocaleString()}
-- Top Spending Categories: ${financialProfile.spendingByCategory
-  ? Object.entries(financialProfile.spendingByCategory)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([cat, amount]) => `${cat}: $${Math.round(amount / 12)}/mo`)
-      .join(', ')
-  : 'Not available'}
+- Total Debt: $${totalDebt.toLocaleString()} (Credit: $${(financialProfile.creditDebt || 0).toLocaleString()}, Loans: $${(financialProfile.loanDebt || 0).toLocaleString()})
+- Monthly Loan Payments: $${(financialProfile.monthlyLoanPayments || 0).toLocaleString()}
+- Spending Volatility: ${financialProfile.spendingVolatility ? Math.round(financialProfile.spendingVolatility * 100) : 0}%
+
+SPENDING BY CATEGORY (all categories, sorted by amount):
+${allCategories}
+
+WHAT YOU CAN HELP WITH:
+- Explain what specific spending categories are costing them
+- Suggest which categories to cut and by how much to improve success odds
+- Calculate how much they'd save by reducing a specific category
+- Explain the simulation results in plain terms
+- Discuss trade-offs between timeline and savings rate
 
 RULES:
 1. Be conversational, warm, and encouraging - like a smart friend who's good with money
 2. Keep responses SHORT (2-4 sentences max) - this will be spoken aloud
-3. Reference specific numbers from their data to make advice personal
-4. If they ask about improving odds, suggest specific spending cuts or timeline changes
+3. Reference SPECIFIC numbers from their data - mention exact category names and dollar amounts
+4. If they ask about improving odds, calculate specific savings from cutting categories
 5. Don't be preachy or condescending
 6. If asked about something outside their financial data, politely redirect to what you know`
 

@@ -31,6 +31,7 @@ export function VoiceResultsChat({ context }: VoiceResultsChatProps) {
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -117,36 +118,46 @@ export function VoiceResultsChat({ context }: VoiceResultsChatProps) {
     }
   }
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
-      mediaRecorderRef.current = mediaRecorder
-      chunksRef.current = []
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data)
-        }
+  const toggleRecording = async () => {
+    if (isRecording) {
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop()
       }
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        stream.getTracks().forEach(track => track.stop())
-        await processResponse({ audio: audioBlob })
-      }
-
-      mediaRecorder.start()
-      setIsRecording(true)
-    } catch (err) {
-      console.error('Failed to start recording:', err)
-    }
-  }
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
       setIsRecording(false)
+    } else {
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        streamRef.current = stream
+
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+        mediaRecorderRef.current = mediaRecorder
+        chunksRef.current = []
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            chunksRef.current.push(e.data)
+          }
+        }
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+          streamRef.current?.getTracks().forEach(track => track.stop())
+          streamRef.current = null
+
+          if (audioBlob.size > 1000) {
+            await processResponse({ audio: audioBlob })
+          } else {
+            console.warn('Recording too short, ignoring')
+          }
+        }
+
+        mediaRecorder.start(100)
+        setIsRecording(true)
+      } catch (err) {
+        console.error('Failed to start recording:', err)
+      }
     }
   }
 
@@ -163,9 +174,10 @@ export function VoiceResultsChat({ context }: VoiceResultsChatProps) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[hsl(var(--accent))] text-white shadow-lg hover:scale-105 transition-transform flex items-center justify-center"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-full bg-[hsl(var(--accent))] text-white shadow-lg hover:scale-105 transition-transform"
       >
-        <MessageCircle className="w-6 h-6" />
+        <MessageCircle className="w-5 h-5" />
+        <span className="font-medium text-sm">Chat with Advisor</span>
       </button>
     )
   }
@@ -227,11 +239,7 @@ export function VoiceResultsChat({ context }: VoiceResultsChatProps) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onMouseLeave={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
+            onClick={toggleRecording}
             disabled={isProcessing}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${
               isRecording
@@ -267,7 +275,7 @@ export function VoiceResultsChat({ context }: VoiceResultsChatProps) {
           </form>
         </div>
         {isRecording && (
-          <p className="text-xs text-center text-muted-foreground mt-2">Release to send</p>
+          <p className="text-xs text-center text-muted-foreground mt-2">Click mic to stop recording</p>
         )}
       </div>
     </div>
