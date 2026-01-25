@@ -6,16 +6,16 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react'
 import { ResultsChart } from '@/components/ResultsChart'
 import { SensitivityTable } from '@/components/SensitivityTable'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions } from '@/types'
 
-// Format currency with proper negative handling
 function formatCurrency(value: number): string {
-  // Ensure it's a valid number and round it
   const num = Number(value) || 0
   const rounded = Math.round(num)
   const abs = Math.abs(rounded)
 
-  // For large numbers, use compact notation
   if (abs >= 1000000) {
     const millions = abs / 1000000
     const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
@@ -33,14 +33,11 @@ function formatCurrency(value: number): string {
   return `$${rounded.toLocaleString()}`
 }
 
-// Format currency with +/- sign
 function formatCurrencyWithSign(value: number): string {
-  // Ensure it's a valid number and round it
   const num = Number(value) || 0
   const rounded = Math.round(num)
   const abs = Math.abs(rounded)
 
-  // For large numbers, use compact notation
   if (abs >= 1000000) {
     const millions = abs / 1000000
     const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
@@ -91,7 +88,6 @@ export default function ResultsPage() {
   const [nSimulations, setNSimulations] = useState(10000)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // Auth check
   useEffect(() => {
     const customerId = localStorage.getItem('customerId')
     if (!customerId) {
@@ -113,7 +109,6 @@ export default function ResultsPage() {
     try {
       const data: StoredResults = JSON.parse(storedData)
 
-      // Check if results are stale (older than 1 hour)
       const oneHour = 60 * 60 * 1000
       if (Date.now() - data.timestamp > oneHour) {
         console.warn('Simulation results are older than 1 hour')
@@ -130,11 +125,10 @@ export default function ResultsPage() {
     }
   }, [isAuthenticated])
 
-  // Show loading spinner while checking auth
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -143,16 +137,16 @@ export default function ResultsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
-          <div className="card p-6">
+          <Card className="p-6">
             <div className="flex items-center gap-3 text-[var(--error)] mb-4">
               <AlertCircle className="w-5 h-5" />
               <span className="font-medium">No Results Found</span>
             </div>
-            <p className="text-[var(--text-secondary)] mb-6">{error}</p>
-            <Link href="/onboarding" className="btn btn-primary w-full justify-center">
-              Start a simulation
-            </Link>
-          </div>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Button asChild className="w-full">
+              <Link href="/onboarding">Start a simulation</Link>
+            </Button>
+          </Card>
         </div>
       </div>
     )
@@ -161,7 +155,7 @@ export default function ResultsPage() {
   if (!results) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -169,7 +163,7 @@ export default function ResultsPage() {
   const delta = results.medianOutcome - results.goalAmount
   const deltaPositive = delta >= 0
 
-  const formatCurrency = (value: number) => `$${Math.round(value).toLocaleString()}`
+  const formatCurrencyLocal = (value: number) => `$${Math.round(value).toLocaleString()}`
 
   const buildCategoryRecommendations = () => {
     if (!financialProfile || !financialProfile.spendingByCategory) return [] as string[]
@@ -186,7 +180,7 @@ export default function ResultsPage() {
       const cutRate = 0.15
       const monthlyCut = amount * cutRate
       const totalCut = monthlyCut * (results.timelineMonths || 1)
-      return `Trim ${name} by ${Math.round(cutRate * 100)}% (~${formatCurrency(monthlyCut)}/mo) to free ${formatCurrency(totalCut)} over your timeline.`
+      return `Trim ${name} by ${Math.round(cutRate * 100)}% (~${formatCurrencyLocal(monthlyCut)}/mo) to free ${formatCurrencyLocal(totalCut)} over your timeline.`
     })
   }
 
@@ -213,7 +207,7 @@ export default function ResultsPage() {
       const newProb = Math.min(1, Math.max(0, baseProb + estimatedImpact))
       return {
         label: `Cut ${name}`,
-        change: `${Math.round(cutRate * 100)}% in ${name} (~${formatCurrency(amount * cutRate)}/mo)`,
+        change: `${Math.round(cutRate * 100)}% in ${name} (~${formatCurrencyLocal(amount * cutRate)}/mo)`,
         newProb,
         impact: estimatedImpact,
       }
@@ -229,67 +223,68 @@ export default function ResultsPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-primary)]">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+            <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
             <span className="font-medium">FutureCast</span>
           </Link>
-          <span className="text-[var(--text-tertiary)]">/</span>
-          <span className="text-[var(--text-secondary)]">Results</span>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-muted-foreground">Results</span>
         </div>
-        <Link href="/onboarding" className="btn btn-secondary text-sm">
-          <ArrowLeft className="w-4 h-4" />
-          New simulation
-        </Link>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/onboarding">
+            <ArrowLeft className="w-4 h-4" />
+            New simulation
+          </Link>
+        </Button>
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         {goalNeedsClarification && (
-          <div className="card p-4 mb-6 bg-[var(--warning-bg,#FFF8E1)] border border-[var(--warning,#F59E0B)]">
+          <Card className="p-4 mb-6 bg-[var(--warning-muted)] border-[var(--warning)]">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-[var(--warning,#F59E0B)] mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-[var(--warning)] mt-0.5" />
               <div>
                 <p className="font-medium">Goal needs more detail</p>
-                <p className="text-sm text-[var(--text-secondary)]">We had to make assumptions because the goal was vague. Add a specific dollar target and timeline for better accuracy.</p>
+                <p className="text-sm text-muted-foreground">We had to make assumptions because the goal was vague. Add a specific dollar target and timeline for better accuracy.</p>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Summary */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="card p-5">
-            <p className="text-sm text-[var(--text-tertiary)] mb-1">Success probability</p>
+          <Card className="p-5">
+            <p className="text-sm text-muted-foreground mb-1">Success probability</p>
             <p className="text-4xl font-medium tabular-nums">{Math.round(results.successProbability * 100)}%</p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">of reaching goal</p>
-          </div>
-          <div className="card p-5">
-            <p className="text-sm text-[var(--text-tertiary)] mb-1">Expected outcome</p>
+            <p className="text-xs text-muted-foreground mt-1">of reaching goal</p>
+          </Card>
+          <Card className="p-5">
+            <p className="text-sm text-muted-foreground mb-1">Expected outcome</p>
             <p className="text-4xl font-medium tabular-nums">{formatCurrency(results.medianOutcome)}</p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">50th percentile</p>
-          </div>
-          <div className="card p-5">
-            <p className="text-sm text-[var(--text-tertiary)] mb-1">Goal</p>
+            <p className="text-xs text-muted-foreground mt-1">50th percentile</p>
+          </Card>
+          <Card className="p-5">
+            <p className="text-sm text-muted-foreground mb-1">Goal</p>
             <p className="text-4xl font-medium tabular-nums">{formatCurrency(results.goalAmount)}</p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">in {results.timelineMonths} months</p>
-          </div>
-          <div className="card p-5">
-            <p className="text-sm text-[var(--text-tertiary)] mb-1">Gap</p>
+            <p className="text-xs text-muted-foreground mt-1">in {results.timelineMonths} months</p>
+          </Card>
+          <Card className="p-5">
+            <p className="text-sm text-muted-foreground mb-1">Gap</p>
             <p className={`text-4xl font-medium tabular-nums ${deltaPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
               {formatCurrencyWithSign(delta)}
             </p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">median vs goal</p>
-          </div>
+            <p className="text-xs text-muted-foreground mt-1">median vs goal</p>
+          </Card>
         </div>
 
-
         {/* Distribution */}
-        <div className="card p-6 mb-8">
+        <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="font-medium">Outcome distribution</h2>
-              <p className="text-sm text-[var(--text-tertiary)]">Based on {nSimulations.toLocaleString()} simulations</p>
+              <p className="text-sm text-muted-foreground">Based on {nSimulations.toLocaleString()} simulations</p>
             </div>
           </div>
 
@@ -313,13 +308,13 @@ export default function ResultsPage() {
                 const positive = diff >= 0
                 return (
                   <tr key={row.label}>
-                    <td className="text-[var(--text-secondary)]">{row.label}</td>
+                    <td className="text-muted-foreground">{row.label}</td>
                     <td className="font-medium tabular-nums">{formatCurrency(row.value)}</td>
                     <td>
-                      <span className={`badge ${positive ? 'badge-success' : 'badge-error'}`}>
+                      <Badge variant={positive ? 'success' : 'error'}>
                         {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         {formatCurrencyWithSign(diff)}
-                      </span>
+                      </Badge>
                     </td>
                   </tr>
                 )
@@ -332,13 +327,13 @@ export default function ResultsPage() {
             goalAmount={results.goalAmount}
             timelineMonths={results.timelineMonths}
           />
-        </div>
+        </Card>
 
         {/* Sensitivity */}
-        <div className="card p-6 mb-8">
+        <Card className="p-6 mb-8">
           <div className="mb-6">
             <h2 className="font-medium">What-if analysis</h2>
-            <p className="text-sm text-[var(--text-tertiary)]">How changes affect your probability</p>
+            <p className="text-sm text-muted-foreground">How changes affect your probability</p>
           </div>
           <SensitivityTable
             baseProbability={results.successProbability}
@@ -346,35 +341,35 @@ export default function ResultsPage() {
             recommendations={recommendations}
             customScenarios={categoryScenarios}
           />
-        </div>
+        </Card>
 
         {/* Assumptions */}
-        <div className="card p-6 mb-8">
+        <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-medium">Assumptions</h2>
-              <p className="text-sm text-[var(--text-tertiary)]">How we interpreted your data and goal</p>
+              <p className="text-sm text-muted-foreground">How we interpreted your data and goal</p>
             </div>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-[var(--text-tertiary)] mb-1">Monthly income (from Nessie)</p>
-              <p className="font-medium">{formatCurrency(effectiveIncome)}/mo</p>
+              <p className="text-xs text-muted-foreground mb-1">Monthly income (from Nessie)</p>
+              <p className="font-medium">{formatCurrencyLocal(effectiveIncome)}/mo</p>
               {assumptions?.salaryDetails?.notes && assumptions.salaryDetails.notes.length > 0 && (
-                <p className="text-xs text-[var(--text-tertiary)] mt-1">{assumptions.salaryDetails.notes[0]}</p>
+                <p className="text-xs text-muted-foreground mt-1">{assumptions.salaryDetails.notes[0]}</p>
               )}
             </div>
             <div>
-              <p className="text-xs text-[var(--text-tertiary)] mb-1">Spending baseline</p>
-              <p className="font-medium">{financialProfile ? `${formatCurrency(financialProfile.monthlySpending || 0)}/mo` : 'Not available'}</p>
+              <p className="text-xs text-muted-foreground mb-1">Spending baseline</p>
+              <p className="font-medium">{financialProfile ? `${formatCurrencyLocal(financialProfile.monthlySpending || 0)}/mo` : 'Not available'}</p>
               {financialProfile?.spendingVolatility !== undefined && (
-                <p className="text-xs text-[var(--text-tertiary)] mt-1\">Volatility {Math.round(financialProfile.spendingVolatility * 100)}%</p>
+                <p className="text-xs text-muted-foreground mt-1">Volatility {Math.round(financialProfile.spendingVolatility * 100)}%</p>
               )}
             </div>
           </div>
-        </div>
+        </Card>
 
-        <p className="text-center text-xs text-[var(--text-tertiary)] mt-8">
+        <p className="text-center text-xs text-muted-foreground mt-8">
           Results are estimates based on Monte Carlo simulation with {nSimulations.toLocaleString()} scenarios. Past performance does not guarantee future results.
         </p>
       </div>

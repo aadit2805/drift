@@ -13,13 +13,14 @@ import {
   Building2,
   LogOut,
   Car,
-  GraduationCap,
   Home,
   Landmark,
   Calendar,
   ShoppingBag,
 } from 'lucide-react'
 import { getAccounts, getFinancialProfile } from '@/lib/api'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 interface Account {
   _id: string
@@ -74,7 +75,6 @@ export default function DashboardPage() {
       setCustomer(JSON.parse(customerDataStr))
     }
 
-    // Fetch accounts and financial profile for this customer
     Promise.all([
       getAccounts(customerId),
       getFinancialProfile(customerId),
@@ -99,7 +99,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -112,12 +112,10 @@ export default function DashboardPage() {
     ? profile.monthlyIncome - profile.monthlySpending
     : 0
 
-  // Calculate variable spending (total spending minus fixed costs)
   const variableSpending = profile
     ? profile.monthlySpending - profile.monthlyBills - profile.monthlyLoanPayments
     : 0
 
-  // Calculate monthly averages for spending categories
   const monthlySpendingByCategory = profile?.spendingByCategory
     ? Object.fromEntries(
         Object.entries(profile.spendingByCategory).map(([k, v]) => [k, Math.round(v / 12)])
@@ -129,29 +127,26 @@ export default function DashboardPage() {
     : 0
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-[var(--border-primary)] px-6 py-4">
+      <header className="border-b border-border px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[var(--accent)] rounded" />
+              <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
               <span className="font-medium">FutureCast</span>
             </Link>
-            <span className="text-[var(--text-tertiary)]">/</span>
-            <span className="text-[var(--text-secondary)]">Dashboard</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground">Dashboard</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-[var(--text-secondary)]">
+            <span className="text-sm text-muted-foreground">
               {customer?.first_name} {customer?.last_name}
             </span>
-            <button
-              onClick={handleLogout}
-              className="btn btn-secondary text-sm"
-            >
+            <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
               Sign out
-            </button>
+            </Button>
           </div>
         </div>
       </header>
@@ -162,48 +157,48 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-medium mb-2">
             Welcome back, {customer?.first_name}
           </h1>
-          <p className="text-[var(--text-secondary)]">
+          <p className="text-muted-foreground">
             Here's your complete financial overview from Capital One.
           </p>
         </div>
 
         {/* Overview Cards */}
         <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <div className="card p-5">
-            <div className="flex items-center gap-2 text-[var(--text-tertiary)] mb-2">
+          <Card className="p-5">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <TrendingUp className="w-4 h-4" />
               <span className="text-sm">Net Worth</span>
             </div>
             <p className={`text-3xl font-medium tabular-nums ${netWorth >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
               ${netWorth.toLocaleString()}
             </p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">Assets minus all debts</p>
-          </div>
-          <div className="card p-5">
-            <div className="flex items-center gap-2 text-[var(--text-tertiary)] mb-2">
+            <p className="text-xs text-muted-foreground mt-1">Assets minus all debts</p>
+          </Card>
+          <Card className="p-5">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <Wallet className="w-4 h-4" />
               <span className="text-sm">Monthly Income</span>
             </div>
             <p className="text-3xl font-medium tabular-nums">
               ${profile?.monthlyIncome.toLocaleString()}
             </p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">Salary + deposits</p>
-          </div>
-          <div className="card p-5">
-            <div className="flex items-center gap-2 text-[var(--text-tertiary)] mb-2">
+            <p className="text-xs text-muted-foreground mt-1">Salary + deposits</p>
+          </Card>
+          <Card className="p-5">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <PiggyBank className="w-4 h-4" />
               <span className="text-sm">Monthly Cash Flow</span>
             </div>
             <p className={`text-3xl font-medium tabular-nums ${monthlyCashFlow >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
               {monthlyCashFlow >= 0 ? '+' : ''}${monthlyCashFlow.toLocaleString()}
             </p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">Income minus expenses</p>
-          </div>
+            <p className="text-xs text-muted-foreground mt-1">Income minus expenses</p>
+          </Card>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
           {/* Accounts */}
-          <div className="card p-6">
+          <Card className="p-6">
             <h2 className="font-medium mb-4 flex items-center gap-2">
               <Building2 className="w-5 h-5" />
               Accounts
@@ -212,14 +207,14 @@ export default function DashboardPage() {
               {accounts.filter(a => a.type !== 'Credit Card').map((account) => (
                 <div
                   key={account._id}
-                  className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg"
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    {account.type === 'Checking' && <Wallet className="w-5 h-5 text-blue-500" />}
-                    {account.type === 'Savings' && <PiggyBank className="w-5 h-5 text-green-500" />}
+                    {account.type === 'Checking' && <Wallet className="w-5 h-5 text-[hsl(var(--accent))]" />}
+                    {account.type === 'Savings' && <PiggyBank className="w-5 h-5 text-[var(--success)]" />}
                     <div>
                       <p className="font-medium text-sm">{account.nickname}</p>
-                      <p className="text-xs text-[var(--text-tertiary)]">{account.type}</p>
+                      <p className="text-xs text-muted-foreground">{account.type}</p>
                     </div>
                   </div>
                   <p className="font-medium tabular-nums">
@@ -228,65 +223,65 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-[var(--border-primary)] flex justify-between">
-              <span className="text-sm text-[var(--text-secondary)]">Total Liquid Assets</span>
+            <div className="mt-4 pt-4 border-t border-border flex justify-between">
+              <span className="text-sm text-muted-foreground">Total Liquid Assets</span>
               <span className="font-medium text-[var(--success)]">${profile?.liquidAssets.toLocaleString()}</span>
             </div>
-          </div>
+          </Card>
 
           {/* Monthly Expenses Breakdown */}
-          <div className="card p-6">
+          <Card className="p-6">
             <h2 className="font-medium mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5" />
               Monthly Expenses
             </h2>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center gap-3">
                   <Home className="w-5 h-5 text-orange-500" />
                   <div>
                     <p className="font-medium text-sm">Fixed Bills</p>
-                    <p className="text-xs text-[var(--text-tertiary)]">Rent, utilities, subscriptions</p>
+                    <p className="text-xs text-muted-foreground">Rent, utilities, subscriptions</p>
                   </div>
                 </div>
                 <p className="font-medium tabular-nums">${profile?.monthlyBills.toLocaleString()}</p>
               </div>
-              <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Landmark className="w-5 h-5 text-red-500" />
+                  <Landmark className="w-5 h-5 text-[var(--error)]" />
                   <div>
                     <p className="font-medium text-sm">Loan Payments</p>
-                    <p className="text-xs text-[var(--text-tertiary)]">Auto, student, personal</p>
+                    <p className="text-xs text-muted-foreground">Auto, student, personal</p>
                   </div>
                 </div>
                 <p className="font-medium tabular-nums">${profile?.monthlyLoanPayments.toLocaleString()}</p>
               </div>
-              <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <ShoppingBag className="w-5 h-5 text-[var(--accent)]" />
+                  <ShoppingBag className="w-5 h-5 text-[hsl(var(--accent))]" />
                   <div>
                     <p className="font-medium text-sm">Variable Spending</p>
-                    <p className="text-xs text-[var(--text-tertiary)]">Groceries, dining, shopping</p>
+                    <p className="text-xs text-muted-foreground">Groceries, dining, shopping</p>
                   </div>
                 </div>
                 <p className="font-medium tabular-nums">${variableSpending.toLocaleString()}</p>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-[var(--border-primary)] flex justify-between">
-              <span className="text-sm text-[var(--text-secondary)]">Total Monthly Expenses</span>
+            <div className="mt-4 pt-4 border-t border-border flex justify-between">
+              <span className="text-sm text-muted-foreground">Total Monthly Expenses</span>
               <span className="font-medium">${profile?.monthlySpending.toLocaleString()}</span>
             </div>
-          </div>
+          </Card>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          {/* Spending by Category (Monthly Averages) */}
-          <div className="card p-6">
+          {/* Spending by Category */}
+          <Card className="p-6">
             <h2 className="font-medium mb-1 flex items-center gap-2">
               <Receipt className="w-5 h-5" />
               Spending by Category
             </h2>
-            <p className="text-xs text-[var(--text-tertiary)] mb-4">Monthly averages based on 12-month history</p>
+            <p className="text-xs text-muted-foreground mb-4">Monthly averages based on 12-month history</p>
             <div className="space-y-3">
               {Object.entries(monthlySpendingByCategory)
                 .sort(([, a], [, b]) => b - a)
@@ -299,9 +294,9 @@ export default function DashboardPage() {
                         <span>{category}</span>
                         <span className="tabular-nums">${amount.toLocaleString()}/mo</span>
                       </div>
-                      <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[var(--accent)] rounded-full"
+                          className="h-full bg-[hsl(var(--accent))] rounded-full"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -309,26 +304,26 @@ export default function DashboardPage() {
                   )
                 })}
             </div>
-          </div>
+          </Card>
 
           {/* Long-Term Debt */}
-          <div className="card p-6">
+          <Card className="p-6">
             <h2 className="font-medium mb-1 flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
               Long-Term Debt
             </h2>
-            <p className="text-xs text-[var(--text-tertiary)] mb-4">Outstanding balances</p>
+            <p className="text-xs text-muted-foreground mb-4">Outstanding balances</p>
             <div className="space-y-3">
               {accounts.filter(a => a.type === 'Credit Card').map((account) => (
                 <div
                   key={account._id}
-                  className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg"
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <CreditCard className="w-5 h-5 text-[var(--error)]" />
                     <div>
                       <p className="font-medium text-sm">{account.nickname}</p>
-                      <p className="text-xs text-[var(--text-tertiary)]">Credit Card</p>
+                      <p className="text-xs text-muted-foreground">Credit Card</p>
                     </div>
                   </div>
                   <p className="font-medium tabular-nums text-[var(--error)]">
@@ -337,12 +332,12 @@ export default function DashboardPage() {
                 </div>
               ))}
               {profile && profile.loanDebt > 0 && (
-                <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center gap-3">
-                    <Car className="w-5 h-5 text-blue-500" />
+                    <Car className="w-5 h-5 text-[hsl(var(--accent))]" />
                     <div>
                       <p className="font-medium text-sm">Auto Loan</p>
-                      <p className="text-xs text-[var(--text-tertiary)]">${profile.monthlyLoanPayments}/mo payment</p>
+                      <p className="text-xs text-muted-foreground">${profile.monthlyLoanPayments}/mo payment</p>
                     </div>
                   </div>
                   <p className="font-medium tabular-nums text-[var(--error)]">
@@ -351,28 +346,30 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-            <div className="mt-4 pt-4 border-t border-[var(--border-primary)] flex justify-between">
-              <span className="text-sm text-[var(--text-secondary)]">Total Debt</span>
+            <div className="mt-4 pt-4 border-t border-border flex justify-between">
+              <span className="text-sm text-muted-foreground">Total Debt</span>
               <span className="font-medium text-[var(--error)]">${totalDebt.toLocaleString()}</span>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* CTA */}
-        <div className="card p-6 bg-gradient-to-r from-[var(--bg-secondary)] to-[var(--bg-tertiary)]">
+        <Card className="p-6 bg-gradient-to-r from-card to-muted">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-medium mb-2">Ready to plan your future?</h2>
-              <p className="text-[var(--text-secondary)]">
+              <p className="text-muted-foreground">
                 Run a Monte Carlo simulation to see the probability of reaching your financial goals.
               </p>
             </div>
-            <Link href="/onboarding" className="btn btn-primary">
-              Start Simulation
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <Button asChild>
+              <Link href="/onboarding">
+                Start Simulation
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
           </div>
-        </div>
+        </Card>
       </main>
     </div>
   )
