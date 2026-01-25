@@ -184,25 +184,40 @@ export default function SimulationPage() {
         setPhase('parsing')
         updateStep(1, 'active')
         let parsedGoal: ParsedGoal
-        try {
-          parsedGoal = await parseGoal(userInputs.goal)
-          
-          // Check if clarification is needed
-          if ('needsClarification' in parsedGoal && parsedGoal.needsClarification && 'clarifyingQuestions' in parsedGoal && parsedGoal.clarifyingQuestions) {
-            setError(
-              `Your goal needs clarification:\n\n${(parsedGoal.clarifyingQuestions as string[]).join('\n\n')}\n\nPlease go back and provide more specific details.`
-            )
-            updateStep(1, 'error', 'Needs clarification')
+
+        // Check if we already have a parsed goal from voice input
+        if (userInputs.parsedGoal) {
+          parsedGoal = {
+            goalType: userInputs.parsedGoal.goalType,
+            targetAmount: userInputs.parsedGoal.targetAmount,
+            timelineMonths: userInputs.parsedGoal.timelineMonths,
+            constraints: [],
+            clarifyingQuestions: null,
+          }
+          updateStep(1, 'done', 'From conversation')
+          setProgress(40)
+        } else {
+          // Fall back to LLM parsing for text-only input
+          try {
+            parsedGoal = await parseGoal(userInputs.goal)
+
+            // Check if clarification is needed
+            if ('needsClarification' in parsedGoal && parsedGoal.needsClarification && 'clarifyingQuestions' in parsedGoal && parsedGoal.clarifyingQuestions) {
+              setError(
+                `Your goal needs clarification:\n\n${(parsedGoal.clarifyingQuestions as string[]).join('\n\n')}\n\nPlease go back and provide more specific details.`
+              )
+              updateStep(1, 'error', 'Needs clarification')
+              return
+            }
+
+            updateStep(1, 'done')
+            setProgress(40)
+          } catch (err) {
+            console.error('Failed to parse goal:', err)
+            setError('Failed to parse your goal. Please try again.')
+            updateStep(1, 'error')
             return
           }
-          
-          updateStep(1, 'done')
-          setProgress(40)
-        } catch (err) {
-          console.error('Failed to parse goal:', err)
-          setError('Failed to parse your goal. Please try again.')
-          updateStep(1, 'error')
-          return
         }
 
         const config: VisualizationConfig = {

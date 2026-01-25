@@ -1,18 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Check, Mic, Loader2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { transcribeAudio } from '@/lib/api'
+import { VoiceGoalInput } from '@/components/VoiceGoalInput'
 
 interface UserInputs {
   age: string
   riskTolerance: 'low' | 'medium' | 'high'
   goal: string
+  parsedGoal?: {
+    targetAmount: number
+    timelineMonths: number
+    goalType: string
+  }
 }
 
 export default function OnboardingPage() {
@@ -24,10 +28,6 @@ export default function OnboardingPage() {
     goal: '',
   })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
-  const [isTranscribing, setIsTranscribing] = useState(false)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
     const customerId = localStorage.getItem('customerId')
@@ -49,7 +49,8 @@ export default function OnboardingPage() {
   const handleNext = () => {
     if (step < 2) {
       setStep(step + 1)
-    } else {
+    } else if (inputs.parsedGoal) {
+      // Save both the raw goal text and parsed goal
       localStorage.setItem('userInputs', JSON.stringify(inputs))
       router.push('/simulation')
     }
@@ -59,63 +60,26 @@ export default function OnboardingPage() {
     if (step > 1) setStep(step - 1)
   }
 
+  const handleGoalComplete = (parsedGoal: { targetAmount: number; timelineMonths: number; goalType: string }) => {
+    // Create a human-readable goal string
+    const timelineText = parsedGoal.timelineMonths >= 12
+      ? `${Math.round(parsedGoal.timelineMonths / 12)} years`
+      : `${parsedGoal.timelineMonths} months`
+    const goalText = `Save $${parsedGoal.targetAmount.toLocaleString()} for ${parsedGoal.goalType.replace('_', ' ')} in ${timelineText}`
+
+    // Save and navigate immediately - VoiceGoalInput already handled the pause
+    localStorage.setItem('userInputs', JSON.stringify({
+      ...inputs,
+      goal: goalText,
+      parsedGoal,
+    }))
+    router.push('/simulation')
+  }
+
   const canProceed = () => {
     if (step === 1) return inputs.age !== ''
-    if (step === 2) return inputs.goal.trim() !== ''
+    if (step === 2) return !!inputs.parsedGoal
     return false
-  }
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
-      mediaRecorderRef.current = mediaRecorder
-      chunksRef.current = []
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data)
-        }
-      }
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        stream.getTracks().forEach(track => track.stop())
-
-        // Send to ElevenLabs for transcription
-        setIsTranscribing(true)
-        try {
-          const transcript = await transcribeAudio(audioBlob)
-          if (transcript) {
-            setInputs(prev => ({ ...prev, goal: transcript }))
-          }
-        } catch (err) {
-          console.error('Transcription failed:', err)
-        } finally {
-          setIsTranscribing(false)
-        }
-      }
-
-      mediaRecorder.start()
-      setIsRecording(true)
-    } catch (err) {
-      console.error('Failed to start recording:', err)
-    }
-  }
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
-    }
-  }
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording()
-    } else {
-      startRecording()
-    }
   }
 
   return (
@@ -186,97 +150,50 @@ export default function OnboardingPage() {
                   <p className="text-xs text-muted-foreground mt-2">Affects investment return modeling</p>
                 </div>
               </div>
+
+              {/* Navigation for step 1 */}
+              <div className="flex justify-between mt-10">
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={step === 1}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
+
+                <Button
+                  onClick={handleNext}
+                  disabled={!canProceed()}
+                >
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           )}
 
-          {/* Step 2: Goal */}
+          {/* Step 2: Voice Goal Input */}
           {step === 2 && (
             <div>
               <p className="text-sm text-muted-foreground mb-2">Step 2 of 2</p>
               <h1 className="text-2xl font-medium mb-2">Your goal</h1>
-              <p className="text-muted-foreground mb-8">Describe what you want to achieve.</p>
+              <p className="text-muted-foreground mb-6">Tell me what you're saving for.</p>
 
-              <div>
-                <label htmlFor="goal" className="block text-sm font-medium mb-2">Goal</label>
-                <div className="relative">
-                  <Textarea
-                    id="goal"
-                    value={inputs.goal}
-                    onChange={(e) => setInputs({ ...inputs, goal: e.target.value })}
-                    placeholder="Save $50,000 for a house down payment in 3 years"
-                    rows={3}
-                    className="resize-none pr-12"
-                    disabled={isRecording || isTranscribing}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleRecording}
-                    disabled={isTranscribing}
-                    className={`absolute right-2 top-2 h-8 w-8 ${
-                      isRecording
-                        ? 'text-[var(--error)] bg-[var(--error)]/10 animate-pulse'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {isTranscribing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {isRecording
-                    ? 'Listening... click mic to stop'
-                    : isTranscribing
-                    ? 'Transcribing your voice...'
-                    : 'Type or click the mic to speak your goal'}
-                </p>
-              </div>
+              <VoiceGoalInput onGoalComplete={handleGoalComplete} />
 
-              <div className="mt-6">
-                <p className="text-xs text-muted-foreground mb-2">Examples</p>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    'Save $10K emergency fund in 1 year',
-                    'Pay off $25K debt in 5 years',
-                    'Save $50K for a house in 3 years',
-                  ].map((ex) => (
-                    <button
-                      key={ex}
-                      type="button"
-                      onClick={() => setInputs({ ...inputs, goal: ex })}
-                      className="text-xs px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors duration-150"
-                    >
-                      {ex}
-                    </button>
-                  ))}
-                </div>
+              {/* Back button only - forward is handled by voice completion */}
+              <div className="flex justify-start mt-6">
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
               </div>
             </div>
           )}
-
-          {/* Navigation */}
-          <div className="flex justify-between mt-10">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={step === 1}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
-
-            <Button
-              onClick={handleNext}
-              disabled={!canProceed()}
-            >
-              {step === 2 ? 'Run simulation' : 'Continue'}
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </div>
         </div>
       </div>
     </div>

@@ -149,4 +149,46 @@ export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
   return response.data.transcript
 }
 
+// Voice goal conversation types
+export interface ConversationMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface VoiceGoalResponse {
+  userTranscript: string
+  assistantResponse: string
+  isComplete: boolean
+  parsedGoal?: {
+    targetAmount: number
+    timelineMonths: number
+    goalType: string
+  }
+  audio: string | null
+  audioAvailable: boolean
+}
+
+// Voice goal conversation - send audio or text, get response with optional TTS
+export const sendVoiceGoal = async (
+  input: { audio?: Blob; text?: string },
+  conversationHistory: ConversationMessage[]
+): Promise<VoiceGoalResponse> => {
+  let audioBase64: string | undefined
+
+  if (input.audio) {
+    const arrayBuffer = await input.audio.arrayBuffer()
+    audioBase64 = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    )
+  }
+
+  const response = await api.post('/api/ai/voice-goal', {
+    audio: audioBase64,
+    text: input.text,
+    conversationHistory,
+  })
+
+  return response.data
+}
+
 export default api
