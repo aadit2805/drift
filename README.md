@@ -1,39 +1,29 @@
-# Monte Carlo Finance
+# Drift
 
-**HPC-powered personal financial simulation for everyone.**
+Monte Carlo financial simulation that shows you the probability of hitting your goals.
 
-> Run 10,000 simulations of your financial future in seconds. See probability distributions, not single-point estimates.
+## What It Does
 
-## The Problem
+Traditional budgeting tools give you single-point estimates. Drift runs 100,000 simulations to show probability distributions instead.
 
-Traditional budgeting apps give you deterministic projections: "Save $500/month and you'll have $18,000 in 3 years."
-
-But life isn't deterministic. Income varies. Unexpected expenses happen. Markets fluctuate.
-
-## Our Solution
-
-Monte Carlo simulation—the same technique used by hedge funds and financial advisors—made accessible to everyone:
-
-1. **Connect your accounts** via Capital One's Nessie API
-2. **Describe your goal** in plain English: "Save $50k for a house in 3 years"
-3. **Run 10,000 simulations** with realistic variance models
-4. **See your probability** of success, not a false single number
+1. Connect bank accounts via Nessie API
+2. Enter a goal in plain English ("Save $50k for a house in 3 years")
+3. Get success probability, percentile outcomes, and what-if scenarios
 
 ## Features
 
-- **Natural Language Goals**: Our LLM parses "retire by 55" into simulation parameters
-- **Real Banking Data**: Pulls spending patterns from Nessie API
-- **HPC Simulation**: Parallel Monte Carlo engine runs 10k scenarios in <500ms
-- **Probability Distributions**: See p10/p25/p50/p75/p90 outcomes
-- **Sensitivity Analysis**: "Reducing dining out by 20% improves your odds by 8%"
-- **Plain English Insights**: AI-generated recommendations
+- Natural language goal parsing via Gemini
+- Real banking data from Capital One Nessie API
+- Parallel Monte Carlo simulation (100k runs in ~500ms)
+- Sensitivity analysis and what-if scenarios
+- Voice narration of results via ElevenLabs
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind, Recharts
+- **Frontend**: Next.js 14, TypeScript, Tailwind, Recharts, Three.js
 - **Backend**: Express.js, TypeScript
-- **Simulation**: Python, NumPy (vectorized + multiprocessing)
-- **APIs**: Nessie (Capital One), OpenAI/Claude
+- **Simulation**: Python, NumPy, multiprocessing
+- **APIs**: Nessie (Capital One), Google Gemini, ElevenLabs
 
 ## Quick Start
 
@@ -46,8 +36,8 @@ Monte Carlo simulation—the same technique used by hedge funds and financial ad
 ### Installation
 
 ```bash
-# Clone the repo
-git clone https://github.com/yourteam/drift.git
+# Clone and install
+git clone https://github.com/aadit2805/drift.git
 cd drift
 
 # Install dependencies
@@ -63,44 +53,18 @@ cd ..
 
 ### Environment Variables
 
-```bash
-cp .env.example .env
-```
+Add your API keys to `.env`:
+- `NESSIE_API_KEY` - Capital One Nessie API key
+- `GEMINI_API_KEY` - Google Gemini for goal parsing
+- `ELEVENLABS_API_KEY` - For voice narration (optional)
 
-Edit `.env` with your API keys:
-- `NESSIE_API_KEY` - Capital One Nessie API key (default provided for hackathon)
-- `OPENAI_API_KEY` - For LLM goal parsing (optional, falls back to keyword matching)
+### Run
 
-### Running Locally
-
-**Option 1: Single command (recommended)**
 ```bash
 npm run dev
 ```
-This uses Turborepo to run both the API (port 3001) and web app (port 3000) concurrently.
 
-**Option 2: Separate terminals**
-```bash
-# Terminal 1: Start the API server
-npm run dev:api
-
-# Terminal 2: Start the frontend
-npm run dev:web
-```
-
-**Option 3: Run from app directories**
-```bash
-# Terminal 1
-cd apps/api && npm run dev
-
-# Terminal 2
-cd apps/web && npm run dev
-```
-
-**(Optional) Seed demo data**
-```bash
-npm run seed
-```
+Runs both the API (port 3001) and web app (port 3000) via Turborepo.
 
 Open http://localhost:3000
 
@@ -116,29 +80,6 @@ drift/
 └── docs/                 # API and simulation documentation
 ```
 
-## How the HPC Works
+## Simulation
 
-Our simulation engine demonstrates key HPC concepts:
-
-1. **Parallelization**: Work split across CPU cores via `multiprocessing.Pool`
-2. **Vectorization**: NumPy array operations instead of Python loops
-3. **Abstraction**: Users see "Running simulation..." not matrix math
-
-```
-Sequential (1 worker):  ~800ms for 10k sims
-Parallel (4 workers):   ~250ms for 10k sims
-Speedup:                3.2x
-```
-
-See [docs/SIMULATION.md](docs/SIMULATION.md) for technical details.
-
-## API Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/financial-profile` | Aggregated Nessie data |
-| `POST /api/parse-goal` | LLM goal parsing |
-| `POST /api/simulate` | Run Monte Carlo simulation |
-| `POST /api/sensitivity` | Run sensitivity analysis |
-
-See [docs/API.md](docs/API.md) for full documentation.
+The Python engine uses NumPy vectorization and multiprocessing to run 100k simulations across CPU cores. Models include income growth variance, spending volatility, investment returns, emergency events, and inflation.
