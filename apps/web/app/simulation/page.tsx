@@ -17,6 +17,15 @@ interface StepStatus {
   message?: string
 }
 
+interface WorkerProgress {
+  id: number
+  progress: number
+  status: 'idle' | 'running' | 'done'
+}
+
+const NUM_WORKERS = 8
+const SIMS_PER_WORKER = 100000 / NUM_WORKERS
+
 export default function SimulationPage() {
   const router = useRouter()
   const [progress, setProgress] = useState(0)
@@ -35,11 +44,12 @@ export default function SimulationPage() {
   }>({ successRate: undefined, expectedValue: undefined })
   const hasStarted = useRef(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const vizStartTimeRef = useRef<number | null>(null)
-
   const [vizConfig, setVizConfig] = useState<VisualizationConfig | null>(null)
-
-  const MIN_VIZ_DURATION = 10000
+  const [workers, setWorkers] = useState<WorkerProgress[]>(
+    Array.from({ length: NUM_WORKERS }, (_, i) => ({ id: i, progress: 0, status: 'idle' }))
+  )
+  const [animationComplete, setAnimationComplete] = useState(false)
+  const [backendComplete, setBackendComplete] = useState(false)
 
   useEffect(() => {
     const customerId = localStorage.getItem('customerId')
@@ -64,6 +74,67 @@ export default function SimulationPage() {
       return updated
     })
   }
+
+  // Track if animation has started
+  const animationStarted = useRef(false)
+
+  // Worker animation logic - starts when simulating, continues until all done
+  useEffect(() => {
+    // Start animation when we enter simulating phase
+    if (phase === 'simulating' && !animationStarted.current) {
+      animationStarted.current = true
+    }
+
+    // Don't run if we haven't started or if already complete
+    if (!animationStarted.current || animationComplete) return
+
+    const workerIntervals: NodeJS.Timeout[] = []
+
+    workers.forEach((worker, idx) => {
+      if (worker.status === 'done') return // Skip workers already done
+
+      const interval = setInterval(() => {
+        setWorkers(prev => {
+          const updated = [...prev]
+          const current = updated[idx]
+
+          if (current.status === 'idle') {
+            updated[idx] = { ...current, status: 'running' }
+          } else if (current.status === 'running' && current.progress < 100) {
+            const increment = Math.random() * 10 + 3
+            const newProgress = Math.min(100, current.progress + increment)
+            updated[idx] = { ...current, progress: newProgress }
+
+            if (newProgress >= 100) {
+              updated[idx] = { ...current, progress: 100, status: 'done' }
+            }
+          }
+
+          return updated
+        })
+      }, 70 + idx * 8)
+
+      workerIntervals.push(interval)
+    })
+
+    return () => {
+      workerIntervals.forEach(clearInterval)
+    }
+  }, [phase, animationComplete, workers])
+
+  // Check if all workers are done
+  useEffect(() => {
+    if (workers.every(w => w.status === 'done')) {
+      setAnimationComplete(true)
+    }
+  }, [workers])
+
+  // Navigate when both animation and backend are complete
+  useEffect(() => {
+    if (animationComplete && backendComplete) {
+      router.push('/results')
+    }
+  }, [animationComplete, backendComplete, router])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -137,19 +208,19 @@ export default function SimulationPage() {
         const config: VisualizationConfig = {
           nPaths: 100,
           months: parsedGoal.timelineMonths ?? 36,
+          months: parsedGoal.timelineMonths || 12,
           startingBalance: financialProfile.liquidAssets - financialProfile.creditDebt,
           monthlyIncome: financialProfile.monthlyIncome,
           monthlySpending: financialProfile.monthlySpending + financialProfile.monthlyBills,
           spendingVolatility: financialProfile.spendingVolatility || 0.15,
           goalAmount: parsedGoal.targetAmount ?? 50000,
+          goalAmount: parsedGoal.targetAmount || 0,
           riskTolerance: userInputs.riskTolerance || 'medium',
         }
         setVizConfig(config)
 
         setPhase('simulating')
         updateStep(2, 'active')
-
-        vizStartTimeRef.current = performance.now()
 
         const simInterval = setInterval(() => {
           setSimCount(prev => Math.min(prev + Math.floor(Math.random() * 400) + 200, 100000))
@@ -177,7 +248,6 @@ export default function SimulationPage() {
           simulationResults = await runSimulation(simulationRequest)
           clearInterval(simInterval)
           setSimCount(100000)
-          setSimCount(10000)
           setBackendStats({
             successRate: simulationResults.successProbability,
             expectedValue: simulationResults.medianOutcome,
@@ -228,10 +298,7 @@ export default function SimulationPage() {
         }
         localStorage.setItem('simulationResults', JSON.stringify(resultsData))
 
-        const vizElapsed = vizStartTimeRef.current ? performance.now() - vizStartTimeRef.current : 0
-        const remainingTime = Math.max(0, MIN_VIZ_DURATION - vizElapsed) + 1500
-
-        setTimeout(() => router.push('/results'), remainingTime)
+        setBackendComplete(true)
       } catch (err) {
         console.error('Simulation flow error:', err)
         setError('An unexpected error occurred. Please try again.')
@@ -307,7 +374,7 @@ export default function SimulationPage() {
             backendSimCount={simCount}
             backendSuccessRate={backendStats.successRate}
             backendExpectedValue={backendStats.expectedValue}
-            totalSimulations={10000}
+            totalSimulations={100000}
           />
         )}
 
@@ -317,6 +384,55 @@ export default function SimulationPage() {
             <div className="text-center">
               <div className="w-8 h-8 border-2 border-muted-foreground border-t-[hsl(var(--accent))] rounded-full animate-spin mx-auto mb-4" />
               <p className="text-muted-foreground">Loading financial data...</p>
+            </div>
+          </Card>
+        )}
+
+        {/* Worker Progress Visualization */}
+        {phase === 'simulating' && (
+          <Card className="p-6 mt-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-medium mb-1">Parallel Workers</h3>
+              <p className="text-xs text-muted-foreground">
+                {NUM_WORKERS} workers processing {SIMS_PER_WORKER.toLocaleString()} simulations each
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {workers.map((worker) => (
+                <div
+                  key={worker.id}
+                  className={`p-3 rounded-lg border transition-all ${
+                    worker.status === 'done'
+                      ? 'border-[var(--success)] bg-[var(--success)]/5'
+                      : worker.status === 'running'
+                      ? 'border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/5'
+                      : 'border-border bg-muted/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium">Worker {worker.id + 1}</span>
+                    {worker.status === 'done' && (
+                      <Check className="w-3 h-3 text-[var(--success)]" />
+                    )}
+                    {worker.status === 'running' && (
+                      <div className="w-2 h-2 rounded-full bg-[hsl(var(--accent))] animate-pulse" />
+                    )}
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        worker.status === 'done'
+                          ? 'bg-[var(--success)]'
+                          : 'bg-[hsl(var(--accent))]'
+                      }`}
+                      style={{ width: `${worker.progress}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 text-right tabular-nums">
+                    {Math.round(worker.progress)}%
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
         )}
@@ -350,7 +466,7 @@ export default function SimulationPage() {
                 <span className="flex-1">{step.label}</span>
                 {stepStatus.status === 'active' && step.label.includes('Monte Carlo') && (
                   <span className="step-counter text-[hsl(var(--accent))]">
-                    {simCount.toLocaleString()}/10,000
+                    {simCount.toLocaleString()}/100,000
                   </span>
                 )}
                 {stepStatus.message && (
@@ -363,7 +479,7 @@ export default function SimulationPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          Monte Carlo simulation computing 10,000 scenarios with your financial data
+          Monte Carlo simulation computing 100,000 scenarios with your financial data
         </p>
       </div>
     </div>
