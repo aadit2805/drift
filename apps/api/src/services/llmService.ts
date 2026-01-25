@@ -42,6 +42,10 @@ Extract the following (use null if not determinable):
    - "house down payment" → 60000
    - "emergency fund" → 15000 (estimate)
    - "pay off debt" → null (will be filled from data)
+   - IMPORTANT: Parse multipliers correctly:
+     * "2 million" or "2M" or "2 mil" → 2000000
+     * "50k" or "50 thousand" → 50000
+     * "1.5M" → 1500000
    - IMPORTANT: Flag as unrealistic if target seems way too low for the goal type (e.g., $3 for a car)
 
 3. timeline_months: Number of months. If vague:
@@ -137,15 +141,28 @@ Respond in JSON only, no explanation:
       timelineMonths = 36
     }
 
-    // Try to extract specific amounts
-    const amountMatch = goal.match(/\$?([\d,]+)(?:k|K)?/)
+    // Try to extract specific amounts with better multiplier handling
+    const amountMatch = goal.match(/\$?([\d,]+(?:\.\d+)?)/)
     let extractedAmount: number | null = null
     if (amountMatch) {
-      let amount = parseInt(amountMatch[1].replace(/,/g, ''))
-      if (goal.toLowerCase().includes('k') && amount < 1000) {
-        amount *= 1000
+      let amount = parseFloat(amountMatch[1].replace(/,/g, ''))
+      
+      // Check for multipliers (must come after the number)
+      const afterNumber = goal.substring(goal.indexOf(amountMatch[0]) + amountMatch[0].length)
+      const multiplierMatch = afterNumber.match(/^\s*(k|K|thousand|million|M|mil|m|billion|B)\b/i)
+      
+      if (multiplierMatch) {
+        const multiplier = multiplierMatch[1].toLowerCase()
+        if (multiplier === 'k' || multiplier === 'thousand') {
+          amount *= 1000
+        } else if (multiplier === 'm' || multiplier === 'mil' || multiplier === 'million') {
+          amount *= 1000000
+        } else if (multiplier === 'b' || multiplier === 'billion') {
+          amount *= 1000000000
+        }
       }
-      extractedAmount = amount
+      
+      extractedAmount = Math.round(amount)
     }
 
     // Check if extracted amount seems unrealistic
