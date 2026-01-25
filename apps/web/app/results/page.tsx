@@ -160,7 +160,7 @@ export default function ResultsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
-          <Card className="p-6">
+          <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50">
             <div className="flex items-center gap-3 text-[var(--error)] mb-4">
               <AlertCircle className="w-5 h-5" />
               <span className="font-medium">No Results Found</span>
@@ -292,7 +292,9 @@ export default function ResultsPage() {
   const assumptions = results.assumptions || HARDCODED_ASSUMPTIONS
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {/* Subtle depth */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] opacity-40" />
       {/* Header - frosted glass */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
         <div className="flex items-center gap-4">
@@ -325,22 +327,22 @@ export default function ResultsPage() {
 
         {/* Summary */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="p-5">
+          <Card className="p-5 bg-card/60 backdrop-blur-sm border-border/50">
             <p className="text-sm text-muted-foreground mb-1">Success probability</p>
             <p className="text-4xl font-medium tabular-nums">{Math.round(results.successProbability * 100)}%</p>
             <p className="text-xs text-muted-foreground mt-1">of reaching goal</p>
           </Card>
-          <Card className="p-5">
+          <Card className="p-5 bg-card/60 backdrop-blur-sm border-border/50">
             <p className="text-sm text-muted-foreground mb-1">Expected outcome</p>
             <p className="text-4xl font-medium tabular-nums">{formatCurrency(results.medianOutcome)}</p>
             <p className="text-xs text-muted-foreground mt-1">50th percentile</p>
           </Card>
-          <Card className="p-5">
+          <Card className="p-5 bg-card/60 backdrop-blur-sm border-border/50">
             <p className="text-sm text-muted-foreground mb-1">Goal</p>
             <p className="text-4xl font-medium tabular-nums">{formatCurrency(results.goalAmount)}</p>
             <p className="text-xs text-muted-foreground mt-1">in {results.timelineMonths} months</p>
           </Card>
-          <Card className="p-5">
+          <Card className="p-5 bg-card/60 backdrop-blur-sm border-border/50">
             <p className="text-sm text-muted-foreground mb-1">Gap</p>
             <p className={`text-4xl font-medium tabular-nums ${deltaPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
               {formatCurrencyWithSign(delta)}
@@ -373,7 +375,7 @@ export default function ResultsPage() {
         )}
 
         {/* Distribution */}
-        <Card className="p-6 mb-8">
+        <Card className="p-6 mb-8 bg-card/60 backdrop-blur-sm border-border/50">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="font-medium">Outcome distribution</h2>
@@ -423,7 +425,7 @@ export default function ResultsPage() {
         </Card>
 
         {/* Sensitivity */}
-        <Card className="p-6 mb-8 border-[var(--accent)]/40 shadow-sm bg-background/80">
+        <Card className="p-6 mb-8 bg-card/60 backdrop-blur-sm border-[hsl(var(--accent))]/20">
           <div className="mb-6">
             <h2 className="font-medium">What-if Analysis</h2>
             <p className="text-sm text-muted-foreground">Changes to help achieve your goal</p>
@@ -437,7 +439,7 @@ export default function ResultsPage() {
         </Card>
 
         {/* Account analysis & model assumptions */}
-        <Card className="p-6 mb-8">
+        <Card className="p-6 mb-8 bg-card/60 backdrop-blur-sm border-border/50">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-medium">Account analysis & assumptions</h2>

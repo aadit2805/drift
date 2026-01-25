@@ -331,7 +331,7 @@ export default function SimulationPage() {
 
           <div className="pt-16"></div>
 
-          <Card className="p-6">
+          <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50">
             <div className="flex items-center gap-3 text-[var(--error)] mb-4">
               <AlertCircle className="w-5 h-5" />
               <span className="font-medium">Simulation Error</span>
@@ -352,7 +352,9 @@ export default function SimulationPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6 relative">
+      {/* Subtle depth */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] opacity-40" />
       <div className="w-full max-w-4xl">
         {/* Header - frosted glass */}
         <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
@@ -387,7 +389,7 @@ export default function SimulationPage() {
 
         {/* Placeholder while loading config */}
         {!vizConfig && (
-          <Card className="p-8 flex items-center justify-center" style={{ minHeight: '400px' }}>
+          <Card className="p-8 flex items-center justify-center bg-card/60 backdrop-blur-sm border-border/50" style={{ minHeight: '400px' }}>
             <div className="text-center">
               <div className="w-8 h-8 border-2 border-muted-foreground border-t-[hsl(var(--accent))] rounded-full animate-spin mx-auto mb-4" />
               <p className="text-muted-foreground">Loading financial data...</p>
@@ -397,7 +399,7 @@ export default function SimulationPage() {
 
         {/* Worker Progress Visualization */}
         {phase === 'simulating' && (
-          <Card className="p-6 mt-6">
+          <Card className="p-6 mt-6 bg-card/60 backdrop-blur-sm border-border/50">
             <div className="mb-4">
               <h3 className="text-sm font-medium mb-1">Parallel Workers</h3>
               <p className="text-xs text-muted-foreground">

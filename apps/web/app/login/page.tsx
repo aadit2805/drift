@@ -58,9 +58,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      {/* Subtle depth */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] opacity-40" />
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-card items-center justify-center p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-card/40 backdrop-blur-sm items-center justify-center p-12 border-r border-border/30">
         <div className="max-w-md">
           <div className="mb-8">
             <span className="text-lg font-semibold tracking-tight">Drift</span>

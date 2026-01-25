@@ -61,52 +61,30 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Mobile header - frosted glass */}
-      <header className="lg:hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          Drift
-        </Link>
+    <div className="min-h-screen flex relative">
+      {/* Subtle depth */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] opacity-40" />
+      {/* Header - frosted glass */}
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-lg font-semibold tracking-tight">
+            Drift
+          </Link>
+          <span className="text-muted-foreground/50">/</span>
+          <span className="text-sm text-muted-foreground">Simulation</span>
+        </div>
         <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
           Exit
         </Link>
       </header>
-      {/* Sidebar */}
-      <div className="hidden lg:flex lg:flex-col w-64 border-r border-border p-6 bg-card/50 backdrop-blur-sm">
-        <Link href="/" className="text-lg font-semibold tracking-tight mb-12 block">
-          Drift
-        </Link>
-
-        <div className="space-y-4">
-          {[
-            { n: 1, label: 'Profile' },
-            { n: 2, label: 'Goal' },
-          ].map((s) => (
-            <div key={s.n} className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                step > s.n
-                  ? 'bg-[var(--success)] text-background'
-                  : step === s.n
-                  ? 'bg-foreground text-background'
-                  : 'bg-muted text-muted-foreground'
-              }`}>
-                {step > s.n ? <Check className="w-3 h-3" /> : s.n}
-              </div>
-              <span className={step >= s.n ? 'text-foreground' : 'text-muted-foreground'}>
-                {s.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Main content */}
-      <div className="flex-1 flex items-center justify-center p-8 pt-24 lg:pt-8">
+      <div className="flex-1 flex items-center justify-center p-8 pt-24">
         <div className="w-full max-w-md animate-fade">
-          {/* Mobile progress */}
-          <div className="lg:hidden flex gap-2 mb-8">
+          {/* Progress indicator */}
+          <div className="flex gap-2 mb-8">
             {[1, 2].map((n) => (
-              <div key={n} className={`h-1 flex-1 rounded ${step >= n ? 'bg-foreground' : 'bg-muted'}`} />
+              <div key={n} className={`h-1 flex-1 rounded transition-colors ${step >= n ? 'bg-foreground' : 'bg-muted'}`} />
             ))}
           </div>
 

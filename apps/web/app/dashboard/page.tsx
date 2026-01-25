@@ -127,7 +127,9 @@ export default function DashboardPage() {
     : 0
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Subtle depth - soft vignette */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] opacity-40" />
       {/* Header - frosted glass */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
         <div className="flex items-center gap-4">
@@ -161,7 +163,7 @@ export default function DashboardPage() {
 
         {/* Overview Cards */}
         <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <Card className="p-5">
+          <Card className="p-5 bg-card/60 backdrop-blur-sm border-border/50">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <TrendingUp className="w-4 h-4" />
               <span className="text-sm">Net Worth</span>
@@ -171,7 +173,7 @@ export default function DashboardPage() {
             </p>
             <p className="text-xs text-muted-foreground mt-1">Assets minus all debts</p>
           </Card>
-          <Card className="p-5">
+          <Card className="p-5 bg-card/60 backdrop-blur-sm border-border/50">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <Wallet className="w-4 h-4" />
               <span className="text-sm">Monthly Income</span>
@@ -181,7 +183,7 @@ export default function DashboardPage() {
             </p>
             <p className="text-xs text-muted-foreground mt-1">Salary + deposits</p>
           </Card>
-          <Card className="p-5">
+          <Card className="p-5 bg-card/60 backdrop-blur-sm border-border/50">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <PiggyBank className="w-4 h-4" />
               <span className="text-sm">Monthly Cash Flow</span>
@@ -195,7 +197,7 @@ export default function DashboardPage() {
 
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
           {/* Accounts */}
-          <Card className="p-6">
+          <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50">
             <h2 className="font-medium mb-4 flex items-center gap-2">
               <Building2 className="w-5 h-5" />
               Accounts
@@ -227,7 +229,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Monthly Expenses Breakdown */}
-          <Card className="p-6">
+          <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50">
             <h2 className="font-medium mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5" />
               Monthly Expenses
@@ -273,7 +275,7 @@ export default function DashboardPage() {
 
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
           {/* Spending by Category */}
-          <Card className="p-6">
+          <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50">
             <h2 className="font-medium mb-1 flex items-center gap-2">
               <Receipt className="w-5 h-5" />
               Spending by Category
@@ -304,7 +306,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Long-Term Debt */}
-          <Card className="p-6">
+          <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50">
             <h2 className="font-medium mb-1 flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
               Long-Term Debt
@@ -351,7 +353,7 @@ export default function DashboardPage() {
         </div>
 
         {/* CTA */}
-        <Card className="p-6 bg-gradient-to-r from-card to-muted">
+        <Card className="p-6 bg-card/70 backdrop-blur-sm border-border/50">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-medium mb-2">Ready to plan your future?</h2>
