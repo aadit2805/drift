@@ -47,8 +47,8 @@ Monte Carlo simulation—the same technique used by hedge funds and financial ad
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourteam/pff.git
-cd pff
+git clone https://github.com/yourteam/drift.git
+cd drift
 
 # Install dependencies
 npm install
@@ -107,7 +107,7 @@ Open http://localhost:3000
 ## Project Structure
 
 ```
-pff/
+drift/
 ├── apps/
 │   ├── web/              # Next.js frontend
 │   └── api/              # Express backend

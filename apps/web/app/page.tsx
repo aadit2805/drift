@@ -13,7 +13,7 @@ export default function Home() {
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-          <span className="font-medium">FutureCast</span>
+          <span className="font-medium">Drift</span>
         </div>
         <div className="flex items-center gap-6">
           <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
@@ -178,7 +178,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-[hsl(var(--accent))] rounded opacity-60" />
-            <span className="text-sm text-muted-foreground">FutureCast</span>
+            <span className="text-sm text-muted-foreground">Drift</span>
           </div>
           <p className="text-sm text-muted-foreground">
 

@@ -2,7 +2,7 @@
 export PATH="/Users/aaditshah/.nvm/versions/node/v20.19.6/bin:$PATH"
 echo "Using Node $(node --version)"
 
-cd /Users/aaditshah/Documents/pff
+cd /Users/aaditshah/Documents/drift
 
 case "$1" in
   api)

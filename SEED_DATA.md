@@ -1,6 +1,6 @@
 # Seed Data - Demo Customer Profiles
 
-This document contains all seeded data for the demo users in the FutureCast application.
+This document contains all seeded data for the demo users in the Drift application.
 
 ## Quick Reference
 

@@ -66,7 +66,7 @@ export default function OnboardingPage() {
       <div className="hidden lg:block w-64 border-r border-border p-6">
         <Link href="/" className="flex items-center gap-2 mb-12">
           <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-          <span className="font-medium">FutureCast</span>
+          <span className="font-medium">Drift</span>
         </Link>
 
         <div className="space-y-4">

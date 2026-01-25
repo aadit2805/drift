@@ -322,7 +322,7 @@ export default function SimulationPage() {
         <div className="w-full max-w-lg">
           <Link href="/" className="flex items-center gap-2 mb-12 justify-center">
             <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-            <span className="font-medium">FutureCast</span>
+            <span className="font-medium">Drift</span>
           </Link>
 
           <Card className="p-6">
@@ -352,7 +352,7 @@ export default function SimulationPage() {
         <div className="flex items-center justify-between mb-8">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-            <span className="font-medium">FutureCast</span>
+            <span className="font-medium">Drift</span>
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Processing</span>

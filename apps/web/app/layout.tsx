@@ -3,7 +3,7 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'FutureCast',
+  title: 'Drift',
   description: 'Monte Carlo simulation for personal finance',
 }
 

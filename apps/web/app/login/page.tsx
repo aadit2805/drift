@@ -68,7 +68,7 @@ export default function LoginPage() {
         <div className="max-w-md">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 bg-foreground rounded-lg" />
-            <span className="text-2xl font-semibold">FutureCast</span>
+            <span className="text-2xl font-semibold">Drift</span>
           </div>
           <h1 className="text-4xl font-medium mb-4">
             See your financial future with clarity
@@ -84,7 +84,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-2 mb-8">
             <div className="w-6 h-6 bg-foreground rounded" />
-            <span className="font-medium">FutureCast</span>
+            <span className="font-medium">Drift</span>
           </div>
 
           <h2 className="text-2xl font-medium mb-2">Sign in</h2>

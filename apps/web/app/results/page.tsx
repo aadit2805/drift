@@ -298,7 +298,7 @@ export default function ResultsPage() {
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-6 h-6 bg-[hsl(var(--accent))] rounded" />
-            <span className="font-medium">FutureCast</span>
+            <span className="font-medium">Drift</span>
           </Link>
           <span className="text-muted-foreground">/</span>
           <span className="text-muted-foreground">Results</span>
