@@ -94,10 +94,11 @@ export interface UserInputs {
 
 export interface ParsedGoal {
   goalType: string
-  targetAmount: number
-  timelineMonths: number
+  targetAmount: number | null
+  timelineMonths: number | null
   constraints: string[]
-  clarifyingQuestions?: string[]
+  clarifyingQuestions?: string[] | null
+  needsClarification?: boolean
   confidence?: number
   source?: string
   rawGoal?: string
@@ -114,6 +115,21 @@ export interface SimulationAssumptions {
   goalSource?: string
   dataFreshnessDays?: number
   notes?: string[]
+}
+
+export interface Assumptions {
+  annualReturnMean: number
+  annualReturnStd: number
+  inflationRate: number
+  inflationVolatility: number
+  annualRaiseMean: number
+  annualRaiseFrequency: string
+  promotionProbabilitySemiAnnual: number
+  promotionRaiseMean: number
+  emergencyProbabilityMonthly: number
+  emergencyAmountRange: string
+  incomeVolatility: number
+  expenseVolatility: number
 }
 
 export interface SimulationRequest {

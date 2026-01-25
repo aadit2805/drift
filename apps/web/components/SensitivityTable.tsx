@@ -24,14 +24,14 @@ export function SensitivityTable({ baseProbability, sensitivityData, recommendat
         .filter(([param]) => !param.startsWith('income_'))
         .map(([param, data]) => {
           const labelMap: Record<string, string> = {
-            'spending_minus_10': 'Reduce spending by 10%',
-            'spending_plus_10': 'Increase spending by 10%',
+            'spending_minus_10': 'Reduce total spending by 10%',
+            'spending_plus_10': 'Increase total spending by 10%',
             'timeline_plus_6mo': 'Extend timeline by 6 months',
           }
 
           const changeMap: Record<string, string> = {
-            'spending_minus_10': '-10% spending',
-            'spending_plus_10': '+10% spending',
+            'spending_minus_10': '-10% total spending',
+            'spending_plus_10': '+10% total spending',
             'timeline_plus_6mo': '+6 months',
           }
 

@@ -8,7 +8,7 @@ Uses NumPy vectorization and multiprocessing for parallel execution.
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from typing import Tuple, Callable, Optional
-from models import SimulationRequest, SimulationResults, Percentiles, SimulationParams
+from models import SimulationRequest, SimulationResults, Percentiles, SimulationParams, Assumptions
 
 
 def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> Tuple[np.ndarray, int]:
@@ -48,6 +48,31 @@ def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> Tup
         params.emergency_max,
         (n_sims, months)
     )
+    
+    # Inflation adjustments (monthly compounding)
+    monthly_inflation = rng.normal(
+        params.inflation_rate / 12,
+        params.inflation_volatility / 12,
+        (n_sims, months)
+    )
+    
+    # Annual raises and semi-annual promotions
+    # Pre-calculate which months get raises (every 12 months) and promotions (every 6 months)
+    annual_raise_months = set(range(11, months, 12))  # Month 11, 23, 35, etc.
+    promotion_months = set(range(5, months, 6))  # Month 5, 11, 17, 23, etc.
+    
+    annual_raises = rng.normal(
+        params.annual_raise_mean,
+        params.annual_raise_volatility,
+        (n_sims, months)
+    )
+    
+    promotion_events = rng.random((n_sims, months)) < params.promotion_probability
+    promotion_raises = rng.normal(
+        params.promotion_raise_mean,
+        params.promotion_raise_volatility,
+        (n_sims, months)
+    )
 
     # Monthly market returns (convert annual to monthly)
     monthly_return_mean = params.annual_return_mean / 12
@@ -58,12 +83,28 @@ def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> Tup
     balances = np.zeros((n_sims, months + 1))
     balances[:, 0] = starting_balance
 
+    # Track cumulative income multiplier for raises and promotions
+    income_multiplier = np.ones(n_sims)
+    spending_multiplier = np.ones(n_sims)
+    
     for month in range(months):
-        # Income with variance
-        income = base_income * income_noise[:, month]
+        # Apply inflation to spending (compounds monthly)
+        spending_multiplier *= (1 + monthly_inflation[:, month])
+        
+        # Apply annual raises
+        if month in annual_raise_months:
+            income_multiplier *= (1 + annual_raises[:, month])
+        
+        # Apply semi-annual promotion chances
+        if month in promotion_months:
+            promotions_this_month = promotion_events[:, month]
+            income_multiplier[promotions_this_month] *= (1 + promotion_raises[:, month][promotions_this_month])
+        
+        # Income with variance, raises, and promotions
+        income = base_income * income_multiplier * income_noise[:, month]
 
-        # Spending with variance
-        spending = base_spending * spending_noise[:, month]
+        # Spending with variance and inflation
+        spending = base_spending * spending_multiplier * spending_noise[:, month]
 
         # Emergency expenses
         emergencies = emergency_events[:, month] * emergency_amounts[:, month]
@@ -165,6 +206,22 @@ def run_monte_carlo(
         p75=float(np.percentile(sorted_balances, 75)),
         p90=float(np.percentile(sorted_balances, 90)),
     )
+    
+    # Build assumptions for transparency
+    assumptions = Assumptions(
+        annual_return_mean=params.annual_return_mean,
+        annual_return_std=params.annual_return_std,
+        inflation_rate=params.inflation_rate,
+        inflation_volatility=params.inflation_volatility,
+        annual_raise_mean=params.annual_raise_mean,
+        annual_raise_frequency="Annual (every 12 months)",
+        promotion_probability_semi_annual=params.promotion_probability,
+        promotion_raise_mean=params.promotion_raise_mean,
+        emergency_probability_monthly=params.emergency_probability,
+        emergency_amount_range=f"${params.emergency_min:,.0f} - ${params.emergency_max:,.0f}",
+        income_volatility=params.income_volatility,
+        expense_volatility=params.expense_volatility,
+    )
 
     return SimulationResults(
         success_probability=float(success_probability),
@@ -176,6 +233,7 @@ def run_monte_carlo(
         best_case=float(sorted_balances[-1]),
         simulations_run=n_simulations,
         workers_used=n_workers,
+        assumptions=assumptions,
     )
 
 

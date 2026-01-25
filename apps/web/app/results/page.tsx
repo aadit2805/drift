@@ -6,7 +6,24 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react'
 import { ResultsChart } from '@/components/ResultsChart'
 import { SensitivityTable } from '@/components/SensitivityTable'
-import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions } from '@/types'
+import { WhatIfScenarios } from '@/components/WhatIfScenarios'
+import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions, Assumptions, UserInputs } from '@/types'
+
+// Hardcoded assumptions - these are constant for all simulations
+const HARDCODED_ASSUMPTIONS: Assumptions = {
+  annualReturnMean: 0.05,
+  annualReturnStd: 0.12,
+  inflationRate: 0.025,
+  inflationVolatility: 0.01,
+  annualRaiseMean: 0.04,
+  annualRaiseFrequency: 'annual',
+  promotionProbabilitySemiAnnual: 0.1,
+  promotionRaiseMean: 0.07,
+  emergencyProbabilityMonthly: 0.05,
+  emergencyAmountRange: '$500–$2,000',
+  incomeVolatility: 0.05,
+  expenseVolatility: 0.08,
+}
 
 // Format currency with proper negative handling
 function formatCurrency(value: number): string {
@@ -68,7 +85,7 @@ interface Results {
   std?: number
   worstCase?: number
   bestCase?: number
-  assumptions?: SimulationAssumptions
+  assumptions?: Assumptions
 }
 
 interface StoredResults {
@@ -76,7 +93,8 @@ interface StoredResults {
   sensitivity: SensitivityAnalysis | null
   parsedGoal: ParsedGoal
   financialProfile: FinancialProfile
-  assumptions?: SimulationAssumptions
+  userInputs?: UserInputs
+  assumptions?: Assumptions
   timestamp: number
 }
 
@@ -86,9 +104,9 @@ export default function ResultsPage() {
   const [sensitivity, setSensitivity] = useState<SensitivityAnalysis | null>(null)
   const [parsedGoal, setParsedGoal] = useState<ParsedGoal | null>(null)
   const [financialProfile, setFinancialProfile] = useState<FinancialProfile | null>(null)
-  const [assumptions, setAssumptions] = useState<SimulationAssumptions | undefined>(undefined)
+  const [userInputs, setUserInputs] = useState<UserInputs | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [nSimulations, setNSimulations] = useState(10000)
+  const [nSimulations, setNSimulations] = useState(100000)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   // Auth check
@@ -123,7 +141,7 @@ export default function ResultsPage() {
       setSensitivity(data.sensitivity)
       setParsedGoal(data.parsedGoal)
       setFinancialProfile(data.financialProfile)
-      setAssumptions(data.results?.assumptions || data.assumptions)
+      setUserInputs(data.userInputs || null)
     } catch (err) {
       console.error('Failed to parse stored results:', err)
       setError('Failed to load simulation results. Please run a new simulation.')
@@ -173,21 +191,61 @@ export default function ResultsPage() {
 
   const buildCategoryRecommendations = () => {
     if (!financialProfile || !financialProfile.spendingByCategory) return [] as string[]
+    if (results.successProbability >= 0.75) return [] // Already likely to succeed
+
+    // Calculate how much additional savings is needed
+    const shortfall = results.goalAmount - results.medianOutcome
+    if (shortfall <= 0) return []
+
+    const monthlyGap = shortfall / (results.timelineMonths || 1)
 
     const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
-    const candidates = Object.entries(financialProfile.spendingByCategory)
+    
+    // Convert annual spending to monthly
+    const monthlySpending = Object.fromEntries(
+      Object.entries(financialProfile.spendingByCategory).map(([k, v]) => [k, v / 12])
+    )
+    
+    const candidates = Object.entries(monthlySpending)
       .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
 
     if (candidates.length === 0) return []
 
-    return candidates.map(([name, amount]) => {
-      const cutRate = 0.15
-      const monthlyCut = amount * cutRate
-      const totalCut = monthlyCut * (results.timelineMonths || 1)
-      return `Trim ${name} by ${Math.round(cutRate * 100)}% (~${formatCurrency(monthlyCut)}/mo) to free ${formatCurrency(totalCut)} over your timeline.`
-    })
+    const recommendations: string[] = []
+    let remainingGap = monthlyGap
+
+    // Strategy 1: Find single largest category that could cover the gap
+    const largestCategory = candidates[0]
+    if (largestCategory) {
+      const [name, monthlyAmount] = largestCategory
+      const cutRate = Math.min(0.5, remainingGap / monthlyAmount) // Max 50% cut
+      if (cutRate >= 0.05) { // At least 5%
+        const monthlyCut = monthlyAmount * cutRate
+        const totalCut = monthlyCut * (results.timelineMonths || 1)
+        recommendations.push(`Reduce ${name} by ${Math.round(cutRate * 100)}% (save $${Math.round(monthlyCut)}/mo) to free ${formatCurrency(totalCut)} over ${results.timelineMonths} months.`)
+        remainingGap -= monthlyCut
+      }
+    }
+
+    // Strategy 2: Small cuts across multiple categories
+    if (remainingGap > 0 && candidates.length >= 3) {
+      const topThree = candidates.slice(0, 3)
+      const perCategoryCut = remainingGap / topThree.length
+      const smallCuts = topThree.map(([name, amount]) => {
+        const cutRate = Math.min(0.25, perCategoryCut / amount)
+        const monthlyCut = amount * cutRate
+        return { name, cutRate, monthlyCut, amount }
+      }).filter(c => c.cutRate >= 0.05)
+
+      if (smallCuts.length > 0) {
+        const totalSavings = smallCuts.reduce((sum, c) => sum + c.monthlyCut, 0)
+        const categories = smallCuts.map(c => `${c.name} (${Math.round(c.cutRate * 100)}%, $${Math.round(c.monthlyCut)}/mo)`).join(', ')
+        recommendations.push(`Alternatively, make small cuts across: ${categories} for a total of $${Math.round(totalSavings)}/mo.`)
+      }
+    }
+
+    return recommendations
   }
 
   const recommendations = [...buildCategoryRecommendations(), ...(sensitivity?.recommendations || [])]
@@ -198,22 +256,34 @@ export default function ResultsPage() {
     if (!financialProfile || !financialProfile.spendingByCategory) return [] as { label: string; change: string; newProb: number; impact: number }[]
 
     const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
-    const candidates = Object.entries(financialProfile.spendingByCategory)
+    
+    // Convert annual spending to monthly
+    const monthlySpending = Object.fromEntries(
+      Object.entries(financialProfile.spendingByCategory).map(([k, v]) => [k, v / 12])
+    )
+    
+    const candidates = Object.entries(monthlySpending)
       .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
 
-    const totalSpend = Math.max(financialProfile.monthlySpending || 0, 1)
+    const totalMonthlySpend = Math.max(financialProfile.monthlySpending || 0, 1)
     const baseProb = results.successProbability
 
-    return candidates.map(([name, amount]) => {
-      const cutRate = 0.15
-      const overallCutFraction = (amount * cutRate) / totalSpend
-      const estimatedImpact = spendingSensitivity ? spendingSensitivity.impact * (overallCutFraction / 0.10) : 0
+    return candidates.map(([name, monthlyAmount]) => {
+      // Dynamic cut rate based on category size and gap
+      const shortfall = Math.max(0, results.goalAmount - results.medianOutcome)
+      const monthlyGap = shortfall / (results.timelineMonths || 1)
+      const suggestedCut = Math.min(0.5, Math.max(0.1, monthlyGap / monthlyAmount))
+      
+      const cutAmount = monthlyAmount * suggestedCut
+      const overallCutFraction = cutAmount / totalMonthlySpend
+      const estimatedImpact = spendingSensitivity ? spendingSensitivity.impact * (overallCutFraction / 0.10) : 0.05
       const newProb = Math.min(1, Math.max(0, baseProb + estimatedImpact))
+      
       return {
-        label: `Cut ${name}`,
-        change: `${Math.round(cutRate * 100)}% in ${name} (~${formatCurrency(amount * cutRate)}/mo)`,
+        label: `Reduce ${name}`,
+        change: `${Math.round(suggestedCut * 100)}% ($${Math.round(cutAmount)}/mo from $${Math.round(monthlyAmount)}/mo)`,
         newProb,
         impact: estimatedImpact,
       }
@@ -348,28 +418,112 @@ export default function ResultsPage() {
           />
         </div>
 
-        {/* Assumptions */}
+        {/* Alternative Strategies - What-If Scenarios */}
+        {financialProfile && userInputs && (
+          <WhatIfScenarios
+            currentSuccessProbability={results.successProbability}
+            goalAmount={results.goalAmount}
+            medianOutcome={results.medianOutcome}
+            timelineMonths={results.timelineMonths}
+            financialProfile={financialProfile}
+            userInputs={userInputs}
+          />
+        )}
+
+        {/* Financial Profile & Simulation Assumptions - Combined Dashboard */}
         <div className="card p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="font-medium">Assumptions</h2>
-              <p className="text-sm text-[var(--text-tertiary)]">How we interpreted your data and goal</p>
+          <div className="mb-6">
+            <h2 className="font-medium">Your Financial Profile &amp; Model Assumptions</h2>
+            <p className="text-sm text-[var(--text-tertiary)]">How we interpreted your data and what we assume about the future</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            {/* Key Metrics */}
+            <div className="p-4 rounded-lg border border-[var(--border-primary)]">
+              <p className="text-xs text-[var(--text-tertiary)] mb-2">Monthly Income</p>
+              <p className="text-2xl font-medium tabular-nums">{formatCurrency(effectiveIncome)}</p>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">per month</p>
+            </div>
+            <div className="p-4 rounded-lg border border-[var(--border-primary)]">
+              <p className="text-xs text-[var(--text-tertiary)] mb-2">Monthly Spending</p>
+              <p className="text-2xl font-medium tabular-nums">
+                {financialProfile ? formatCurrency(financialProfile.monthlySpending || 0) : 'N/A'}
+              </p>
+              {financialProfile?.spendingVolatility !== undefined && (
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">±{Math.round(financialProfile.spendingVolatility * 100)}% volatility</p>
+              )}
+            </div>
+            <div className="p-4 rounded-lg border border-[var(--border-primary)]">
+              <p className="text-xs text-[var(--text-tertiary)] mb-2">Net Monthly</p>
+              <p className="text-2xl font-medium tabular-nums">
+                {formatCurrency(effectiveIncome - (financialProfile?.monthlySpending || 0))}
+              </p>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">savings rate</p>
             </div>
           </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-[var(--text-tertiary)] mb-1">Monthly income (from Nessie)</p>
-              <p className="font-medium">{formatCurrency(effectiveIncome)}/mo</p>
-              {assumptions?.salaryDetails?.notes && assumptions.salaryDetails.notes.length > 0 && (
-                <p className="text-xs text-[var(--text-tertiary)] mt-1">{assumptions.salaryDetails.notes[0]}</p>
-              )}
-            </div>
-            <div>
-              <p className="text-xs text-[var(--text-tertiary)] mb-1">Spending baseline</p>
-              <p className="font-medium">{financialProfile ? `${formatCurrency(financialProfile.monthlySpending || 0)}/mo` : 'Not available'}</p>
-              {financialProfile?.spendingVolatility !== undefined && (
-                <p className="text-xs text-[var(--text-tertiary)] mt-1\">Volatility {Math.round(financialProfile.spendingVolatility * 100)}%</p>
-              )}
+
+          <div className="border-t border-[var(--border-primary)] pt-6">
+            <h3 className="text-sm font-medium mb-4">Economic &amp; Career Assumptions</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg border-l-4 border-l-gray-400 bg-[var(--surface-secondary)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-[var(--text-tertiary)] mb-1">Inflation Rate</p>
+                    <p className="text-2xl font-medium tabular-nums">2.5%</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">±1% volatility</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border-l-4 border-l-green-500 bg-[var(--surface-secondary)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-[var(--text-tertiary)] mb-1">Annual Raises</p>
+                    <p className="text-2xl font-medium tabular-nums">4%</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">Average yearly</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border-l-4 border-l-blue-500 bg-[var(--surface-secondary)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-[var(--text-tertiary)] mb-1">Investment Returns</p>
+                    <p className="text-2xl font-medium tabular-nums">5%</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">±12% volatility</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border-l-4 border-l-purple-500 bg-[var(--surface-secondary)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-[var(--text-tertiary)] mb-1">Promotion Chance</p>
+                    <p className="text-2xl font-medium tabular-nums">10%</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">Every 6 months (+7% raise)</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border-l-4 border-l-orange-500 bg-[var(--surface-secondary)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-[var(--text-tertiary)] mb-1">Emergency Risk</p>
+                    <p className="text-2xl font-medium tabular-nums">5%</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">Per month (~0.6/year)</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border-l-4 border-l-red-500 bg-[var(--surface-secondary)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-[var(--text-tertiary)] mb-1">Emergency Size</p>
+                    <p className="text-xl font-medium">$500–$2K</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">When it happens</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

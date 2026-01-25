@@ -77,6 +77,21 @@ export interface SimulationRequest {
   }
 }
 
+export interface Assumptions {
+  annualReturnMean: number
+  annualReturnStd: number
+  inflationRate: number
+  inflationVolatility: number
+  annualRaiseMean: number
+  annualRaiseFrequency: string
+  promotionProbabilitySemiAnnual: number
+  promotionRaiseMean: number
+  emergencyProbabilityMonthly: number
+  emergencyAmountRange: string
+  incomeVolatility: number
+  expenseVolatility: number
+}
+
 export interface SimulationResults {
   successProbability: number
   medianOutcome: number
@@ -91,6 +106,7 @@ export interface SimulationResults {
   std: number
   worstCase: number
   bestCase: number
+  assumptions?: Assumptions
 }
 
 export interface SensitivityAnalysis {

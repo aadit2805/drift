@@ -42,7 +42,7 @@ class Goal(BaseModel):
 class SimulationParams(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     
-    n_simulations: int = 10000
+    n_simulations: int = 100000
     income_volatility: float = 0.05
     expense_volatility: float = 0.15
     emergency_probability: float = 0.08
@@ -51,6 +51,37 @@ class SimulationParams(BaseModel):
     annual_return_mean: float = 0.07
     annual_return_std: float = 0.15
     inflation_rate: float = 0.025
+    inflation_volatility: float = 0.01  # Inflation variance (e.g., 2.5% ± 1%)
+    annual_raise_mean: float = 0.03  # Average annual raise 3%
+    annual_raise_volatility: float = 0.015  # Raise variance
+    promotion_probability: float = 0.15  # 15% chance of promotion each half-year
+    promotion_raise_mean: float = 0.08  # Average promotion raise 8%
+    promotion_raise_volatility: float = 0.03  # Promotion raise variance
+    
+    @staticmethod
+    def from_risk_tolerance(risk_tolerance: Literal["low", "medium", "high"], base_params: Optional['SimulationParams'] = None) -> 'SimulationParams':
+        """
+        Create SimulationParams with return expectations adjusted for risk tolerance.
+        
+        Low risk: Conservative returns (4% mean, 8% std)
+        Medium risk: Moderate returns (7% mean, 15% std) - balanced portfolio
+        High risk: Aggressive returns (10% mean, 20% std) - stock-heavy portfolio
+        """
+        params = base_params or SimulationParams()
+        
+        risk_profiles = {
+            "low": {"annual_return_mean": 0.04, "annual_return_std": 0.08},
+            "medium": {"annual_return_mean": 0.07, "annual_return_std": 0.15},
+            "high": {"annual_return_mean": 0.10, "annual_return_std": 0.20},
+        }
+        
+        profile = risk_profiles.get(risk_tolerance, risk_profiles["medium"])
+        
+        # Update return expectations
+        params.annual_return_mean = profile["annual_return_mean"]
+        params.annual_return_std = profile["annual_return_std"]
+        
+        return params
 
 
 class SimulationRequest(BaseModel):
@@ -70,6 +101,22 @@ class Percentiles(BaseModel):
     p90: float
 
 
+class Assumptions(BaseModel):
+    """Simulation assumptions for transparency"""
+    annual_return_mean: float
+    annual_return_std: float
+    inflation_rate: float
+    inflation_volatility: float
+    annual_raise_mean: float
+    annual_raise_frequency: str  # e.g., "Annual (every 12 months)"
+    promotion_probability_semi_annual: float
+    promotion_raise_mean: float
+    emergency_probability_monthly: float
+    emergency_amount_range: str  # e.g., "$500 - $3,000"
+    income_volatility: float
+    expense_volatility: float
+
+
 class SimulationResults(BaseModel):
     success_probability: float
     median_outcome: float
@@ -80,6 +127,7 @@ class SimulationResults(BaseModel):
     best_case: float
     simulations_run: int
     workers_used: int
+    assumptions: Optional[Assumptions] = None
 
 
 class SensitivityResult(BaseModel):
