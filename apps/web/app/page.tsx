@@ -1,13 +1,32 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
+// Dynamic import to avoid SSR issues with Three.js
+const ParticleField = dynamic(
+  () => import('@/components/ParticleField').then((mod) => mod.ParticleField),
+  { ssr: false }
+)
+
+// Accent line divider component
+function AccentLine() {
+  return (
+    <div className="relative z-10 max-w-6xl mx-auto px-6">
+      <div className="h-px bg-gradient-to-r from-transparent via-[hsl(var(--accent))/30] to-transparent" />
+    </div>
+  )
+}
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* 3D Particle Background - covers entire page */}
+      <ParticleField className="z-0 pointer-events-none" particleCount={400} />
+
       {/* Nav - frosted glass */}
       <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between px-6 py-3 max-w-3xl w-[calc(100%-2rem)] rounded-full bg-background/60 backdrop-blur-xl border border-border/50">
         <Link href="/" className="text-lg font-semibold tracking-tight">
@@ -21,30 +40,32 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="px-6 pt-32 pb-20 max-w-6xl mx-auto">
-        <p className="text-muted-foreground text-sm mb-6 tracking-wide uppercase">
-          Financial foresight
-        </p>
-        <h1 className="text-[clamp(2.5rem,7vw,5rem)] font-medium leading-[1.05] tracking-[-0.03em] mb-8 max-w-4xl">
-          Stop guessing.<br />
-          Start knowing.
-        </h1>
-        <p className="text-muted-foreground text-xl max-w-xl mb-12 leading-relaxed">
-        Other apps tell you what will happen. We show you what could happen and the odds of each outcome.
-        </p>
-        <Button asChild>
-          <Link href="/login">
-            Get started
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </Button>
+      <section className="relative z-10 px-6 pt-32 pb-20 max-w-6xl mx-auto">
+        <div>
+          <p className="text-muted-foreground text-sm mb-6 tracking-wide uppercase">
+            Financial foresight
+          </p>
+          <h1 className="text-[clamp(2.5rem,7vw,5rem)] font-medium leading-[1.05] tracking-[-0.03em] mb-8 max-w-4xl">
+            Stop guessing.<br />
+            Start knowing.
+          </h1>
+          <p className="text-muted-foreground text-xl max-w-xl mb-12 leading-relaxed">
+          Other apps tell you what will happen. We show you what could happen and the odds of each outcome.
+          </p>
+          <Button asChild>
+            <Link href="/login">
+              Get started
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </Button>
+        </div>
       </section>
 
       {/* Product Preview */}
-      <section className="px-6 pb-32 max-w-4xl mx-auto">
-        <Card className="overflow-hidden hover:translate-y-0 bg-card/80 backdrop-blur-sm">
+      <section className="relative z-10 px-6 pb-32 max-w-4xl mx-auto">
+        <Card className="overflow-hidden hover:translate-y-0 bg-card/60 backdrop-blur-sm border-border/50">
           {/* Window chrome */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
             <div className="w-3 h-3 rounded-full bg-muted" />
             <div className="w-3 h-3 rounded-full bg-muted" />
             <div className="w-3 h-3 rounded-full bg-muted" />
@@ -67,7 +88,7 @@ export default function Home() {
             </div>
 
             {/* Divider */}
-            <div className="h-px bg-border mb-12" />
+            <div className="h-px bg-border/50 mb-12" />
 
             {/* Outcomes */}
             <div>
@@ -98,57 +119,62 @@ export default function Home() {
         </p>
       </section>
 
+      <AccentLine />
+
       {/* How it works */}
-      <section className="px-6 py-24 border-t border-border">
+      <section className="relative z-10 px-6 py-24">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-medium tracking-tight mb-16">How it works</h2>
 
-          <div className="grid md:grid-cols-3 gap-12 md:gap-16">
-            <div>
-              <p className="text-muted-foreground text-sm mb-3">01</p>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50 hover:bg-card/80 transition-colors">
               <h3 className="font-medium mb-3">Connect your bank</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                We analyze 6 months of transactions to understand your actual spending patterns and income variability.
+                We analyze your transactions to understand your actual spending patterns and income variability.
               </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm mb-3">02</p>
+            </Card>
+            <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50 hover:bg-card/80 transition-colors">
               <h3 className="font-medium mb-3">Set your goal</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 Describe what you want in plain language. Our system extracts the target amount and timeline.
               </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm mb-3">03</p>
+            </Card>
+            <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50 hover:bg-card/80 transition-colors">
               <h3 className="font-medium mb-3">See your odds</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 We run 100,000 simulations of your future, modeling real-world uncertainty. You get probabilities, not promises.
               </p>
-            </div>
+            </Card>
           </div>
         </div>
       </section>
 
+      <AccentLine />
+
       {/* The pitch */}
-      <section className="px-6 py-24 border-t border-border">
+      <section className="relative z-10 px-6 py-24">
         <div className="max-w-2xl mx-auto">
-          <p className="text-muted-foreground leading-relaxed mb-6">
-            Traditional budgeting apps give you a single number: "Save $500/month and you'll have $18,000 in 3 years."
-          </p>
-          <p className="text-muted-foreground leading-relaxed mb-6">
-            That number is a lie. It assumes your income stays constant, no emergencies happen, and you never overspend. Reality doesn't work that way.
-          </p>
-          <p className="text-foreground leading-relaxed mb-6 border-l-2 border-border pl-6">
-            The right question isn't "how much will I have?" It's "what are my odds of getting there?"
-          </p>
-          <p className="text-muted-foreground leading-relaxed">
-            Drift runs simulations that account for uncertainty. Some months you'll save more, some less. We model that variance to give you an honest probability.
-          </p>
+          <Card className="p-8 bg-card/60 backdrop-blur-sm border-border/50">
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              Traditional budgeting apps give you a single number: "Save $500/month and you'll have $18,000 in 3 years."
+            </p>
+            <p className="text-muted-foreground leading-relaxed mb-6">
+              That number is a lie. It assumes your income stays constant, no emergencies happen, and you never overspend. Reality doesn't work that way.
+            </p>
+            <p className="text-foreground leading-relaxed mb-6 border-l-2 border-l-[hsl(var(--accent))] pl-6">
+              The right question isn't "how much will I have?" It's "what are my odds of getting there?"
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              Drift runs simulations that account for uncertainty. Some months you'll save more, some less. We model that variance to give you an honest probability.
+            </p>
+          </Card>
         </div>
       </section>
 
+      <AccentLine />
+
       {/* CTA */}
-      <section className="px-6 py-24 border-t border-border">
+      <section className="relative z-10 px-6 py-24">
         <div className="max-w-xl mx-auto text-center">
           <h2 className="text-3xl font-medium tracking-tight mb-4">See your odds</h2>
           <p className="text-muted-foreground mb-8">
@@ -164,7 +190,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-8 border-t border-border">
+      <footer className="relative z-10 px-6 py-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Drift</span>
           <span className="text-xs text-muted-foreground">Built with uncertainty in mind</span>
