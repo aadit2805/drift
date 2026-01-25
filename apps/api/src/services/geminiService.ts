@@ -385,4 +385,139 @@ Respond with ONLY a JSON array like: ["recommendation 1", "recommendation 2", "r
   }
 }
 
+// Conversation message type
+interface ConversationMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+// Goal conversation response
+interface GoalConversationResponse {
+  response: string
+  isComplete: boolean
+  parsedGoal?: {
+    targetAmount: number
+    timelineMonths: number
+    goalType: string
+  }
+}
+
+export class GeminiGoalConversation {
+  private _model: GenerativeModel | null = null
+
+  // Lazy initialization - only create model when first needed
+  private get model(): GenerativeModel | null {
+    if (this._model === null && process.env.GEMINI_API_KEY) {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+      this._model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    }
+    return this._model
+  }
+
+  async processUserInput(
+    userMessage: string,
+    conversationHistory: ConversationMessage[]
+  ): Promise<GoalConversationResponse> {
+    if (!this.model) {
+      console.warn('Gemini API key not configured for goal conversation')
+      return {
+        response: "I'd love to help you set your financial goal. What are you saving for?",
+        isComplete: false,
+      }
+    }
+
+    console.log('Processing goal conversation:', { userMessage, historyLength: conversationHistory.length })
+
+    const systemPrompt = `You are Drift, a friendly financial goal assistant. Your job is to help users define their financial goals through natural conversation.
+
+RULES:
+1. Be conversational and warm - like a smart friend who's good with money
+2. Keep responses SHORT (1-2 sentences max)
+3. Ask ONE clarifying question at a time if needed
+4. Extract: goal type, target amount, timeline
+
+WHEN YOU HAVE ALL THREE (amount, timeline, goal type):
+- Confirm what you understood
+- End your response with [GOAL_COMPLETE] on its own line
+- Include a JSON block with the parsed goal:
+\`\`\`json
+{"targetAmount": NUMBER, "timelineMonths": NUMBER, "goalType": "STRING"}
+\`\`\`
+
+Goal types: retirement, major_purchase, emergency_fund, debt_payoff, travel, education, investment, custom
+
+EXAMPLES:
+User: "I want to save for a house"
+You: "Nice! How much are you thinking for the down payment?"
+
+User: "Like 50 thousand"
+You: "Got it, $50K for a house down payment. What's your timeline - when are you hoping to buy?"
+
+User: "Maybe 3 years"
+You: "Perfect - $50,000 for a house down payment in 3 years. Let's see what your odds look like!
+[GOAL_COMPLETE]
+\`\`\`json
+{"targetAmount": 50000, "timelineMonths": 36, "goalType": "major_purchase"}
+\`\`\`"
+
+Remember: Be concise! This will be spoken aloud.`
+
+    // Build conversation context
+    const conversationContext = conversationHistory
+      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n')
+
+    const fullPrompt = `${systemPrompt}
+
+CONVERSATION SO FAR:
+${conversationContext}
+
+User: ${userMessage}
+
+Your response (remember: 1-2 sentences, conversational):`
+
+    try {
+      const result = await this.model.generateContent(fullPrompt)
+      const responseText = result.response.text().trim()
+
+      console.log('Gemini goal response:', responseText.substring(0, 200))
+
+      // Check if goal is complete
+      const isComplete = responseText.includes('[GOAL_COMPLETE]')
+
+      // Extract parsed goal if complete
+      let parsedGoal: GoalConversationResponse['parsedGoal'] = undefined
+      if (isComplete) {
+        const jsonMatch = responseText.match(/```json\s*([\s\S]*?)```/)
+        if (jsonMatch) {
+          try {
+            parsedGoal = JSON.parse(jsonMatch[1].trim())
+          } catch (e) {
+            console.error('Failed to parse goal JSON:', e)
+          }
+        }
+      }
+
+      // Clean up response text (remove markers and JSON)
+      let cleanResponse = responseText
+        .replace('[GOAL_COMPLETE]', '')
+        .replace(/```json[\s\S]*?```/g, '')
+        .trim()
+
+      return {
+        response: cleanResponse,
+        isComplete,
+        parsedGoal,
+      }
+    } catch (error) {
+      console.error('Gemini conversation error:', error)
+      return {
+        response: "I didn't quite catch that. What financial goal are you working towards?",
+        isComplete: false,
+      }
+    }
+  }
+}
+
 export const geminiService = new GeminiService()
+export const geminiGoalConversation = new GeminiGoalConversation()

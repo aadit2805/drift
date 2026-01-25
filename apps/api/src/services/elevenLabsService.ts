@@ -137,25 +137,48 @@ export class ElevenLabsService {
       throw new Error('ElevenLabs API key not configured')
     }
 
+    const fs = await import('fs')
+    const os = await import('os')
+    const path = await import('path')
+
+    // Write buffer to temp file
+    const tempPath = path.join(os.tmpdir(), `audio-${Date.now()}.webm`)
+
     try {
-      // Create a Blob from the buffer for the API
-      const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' })
+      // Write audio to temp file
+      fs.writeFileSync(tempPath, audioBuffer)
+
+      // Create read stream from temp file
+      const fileStream = fs.createReadStream(tempPath)
 
       const result = await this.client.speechToText.convert({
-        file: audioBlob,
+        file: fileStream,
         model_id: 'scribe_v1',
-        language_code: 'en',
       })
+
+      console.log('ElevenLabs STT result:', JSON.stringify(result, null, 2))
 
       // Extract the transcript text from the response
       if (result && result.text) {
         return result.text
       }
 
+      // If no text but we got a result, log it for debugging
+      if (result) {
+        console.log('STT result has no text property:', Object.keys(result))
+      }
+
       throw new Error('No transcript returned')
     } catch (error) {
       console.error('ElevenLabs transcription error:', error)
       throw error
+    } finally {
+      // Clean up temp file
+      try {
+        fs.unlinkSync(tempPath)
+      } catch {
+        // Ignore cleanup errors
+      }
     }
   }
 

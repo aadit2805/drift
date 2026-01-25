@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { geminiService } from '../services/geminiService.js'
+import { geminiService, geminiGoalConversation } from '../services/geminiService.js'
 import { elevenLabsService } from '../services/elevenLabsService.js'
 import type { SimulationResults, FinancialProfile } from '../types/index.js'
 
@@ -22,6 +22,17 @@ interface AudioRequestBody {
 
 interface TranscribeRequestBody {
   audio: string // base64-encoded audio
+}
+
+interface ConversationMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+interface VoiceGoalRequestBody {
+  audio?: string // base64-encoded audio (optional if text provided)
+  text?: string // text input (optional if audio provided)
+  conversationHistory: ConversationMessage[]
 }
 
 // Generate narrative from simulation results using Gemini
@@ -148,6 +159,77 @@ router.post('/transcribe', async (req: Request, res: Response) => {
   }
 })
 
+// Voice goal conversation - STT → Gemini → TTS pipeline
+router.post('/voice-goal', async (req: Request, res: Response) => {
+  try {
+    const { audio, text, conversationHistory } = req.body as VoiceGoalRequestBody
+
+    if (!audio && !text) {
+      return res.status(400).json({
+        error: 'Either audio or text must be provided',
+      })
+    }
+
+    // Step 1: Get user's message (transcribe if audio, use text otherwise)
+    let userMessage: string
+    if (audio) {
+      if (!elevenLabsService.isConfigured()) {
+        return res.status(503).json({
+          error: 'ElevenLabs API not configured for transcription',
+        })
+      }
+      const audioBuffer = Buffer.from(audio, 'base64')
+      console.log(`Received audio: ${audioBuffer.length} bytes`)
+
+      if (audioBuffer.length < 1000) {
+        return res.status(400).json({
+          error: 'Audio too short - please speak longer',
+        })
+      }
+
+      userMessage = await elevenLabsService.transcribeAudio(audioBuffer)
+      console.log(`Transcribed: "${userMessage}"`)
+    } else {
+      userMessage = text!
+    }
+
+    // Step 2: Process with Gemini
+    const geminiResponse = await geminiGoalConversation.processUserInput(
+      userMessage,
+      conversationHistory || []
+    )
+
+    // Step 3: Generate TTS for the response
+    let responseAudio: string | null = null
+    if (elevenLabsService.isConfigured() && geminiResponse.response) {
+      try {
+        const audioBuffer = await elevenLabsService.generateAudio(geminiResponse.response, {
+          voice: 'josh', // Friendly, conversational
+        })
+        responseAudio = audioBuffer.toString('base64')
+      } catch (ttsError) {
+        console.error('TTS generation failed:', ttsError)
+        // Continue without audio
+      }
+    }
+
+    res.json({
+      userTranscript: userMessage,
+      assistantResponse: geminiResponse.response,
+      isComplete: geminiResponse.isComplete,
+      parsedGoal: geminiResponse.parsedGoal,
+      audio: responseAudio,
+      audioAvailable: !!responseAudio,
+    })
+  } catch (error) {
+    console.error('Voice goal error:', error)
+    res.status(500).json({
+      error: 'Failed to process voice goal',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
 // Get available voices
 router.get('/voices', (req: Request, res: Response) => {
   const voices = elevenLabsService.getAvailableVoices()
@@ -213,8 +295,8 @@ router.post('/generate-briefing', async (req: Request, res: Response) => {
       })
     }
 
-    // Select voice based on outcome (or use override if provided)
-    const selectedVoice = voice || elevenLabsService.selectVoiceByOutcome(simulationResults.successProbability)
+    // Use consistent voice throughout the app (josh - friendly, conversational)
+    const selectedVoice = voice || 'josh'
 
     // Generate audio from the narrative
     const audio = await elevenLabsService.generateAudio(narrative, { voice: selectedVoice })
