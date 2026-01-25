@@ -171,6 +171,40 @@ export interface VoiceGoalResponse {
   audioAvailable: boolean
 }
 
+export interface VoiceResultsResponse {
+  userTranscript: string
+  assistantResponse: string
+  audio: string | null
+  audioAvailable: boolean
+}
+
+export interface VoiceResultsContext {
+  simulationResults: {
+    successProbability: number
+    medianOutcome: number
+    percentiles: { p10: number; p25: number; p50: number; p75: number; p90: number }
+    mean?: number
+    std?: number
+    worstCase?: number
+    bestCase?: number
+  }
+  financialProfile: {
+    monthlyIncome: number
+    monthlySpending: number
+    liquidAssets: number
+    creditDebt: number
+    loanDebt: number
+    monthlyLoanPayments: number
+    spendingByCategory: Record<string, number>
+    spendingVolatility: number
+  }
+  goal: {
+    targetAmount: number
+    timelineMonths: number
+    goalType: string
+  }
+}
+
 // Voice goal conversation - send audio or text, get response with optional TTS
 export const sendVoiceGoal = async (
   input: { audio?: Blob; text?: string },
@@ -189,6 +223,31 @@ export const sendVoiceGoal = async (
     audio: audioBase64,
     text: input.text,
     conversationHistory,
+  })
+
+  return response.data
+}
+
+// Voice results conversation - discuss simulation results with AI
+export const sendVoiceResults = async (
+  input: { audio?: Blob; text?: string },
+  conversationHistory: ConversationMessage[],
+  context: VoiceResultsContext
+): Promise<VoiceResultsResponse> => {
+  let audioBase64: string | undefined
+
+  if (input.audio) {
+    const arrayBuffer = await input.audio.arrayBuffer()
+    audioBase64 = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    )
+  }
+
+  const response = await api.post('/api/ai/voice-results', {
+    audio: audioBase64,
+    text: input.text,
+    conversationHistory,
+    context,
   })
 
   return response.data

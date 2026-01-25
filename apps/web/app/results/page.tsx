@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-rea
 import { ResultsChart } from '@/components/ResultsChart'
 import { SensitivityTable } from '@/components/SensitivityTable'
 import { AudioNarration } from '@/components/AudioNarration'
+import { VoiceResultsChat } from '@/components/VoiceResultsChat'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -351,29 +352,6 @@ export default function ResultsPage() {
           </Card>
         </div>
 
-        {/* Audio Narration */}
-        {financialProfile && parsedGoal && (
-          <div className="mb-8">
-            <AudioNarration
-              simulationResults={{
-                successProbability: results.successProbability,
-                medianOutcome: results.medianOutcome,
-                percentiles: results.percentiles,
-                mean: results.mean,
-                std: results.std,
-                worstCase: results.worstCase,
-                bestCase: results.bestCase,
-              }}
-              financialProfile={financialProfile}
-              goal={{
-                targetAmount: results.goalAmount,
-                timelineMonths: results.timelineMonths,
-                goalType: parsedGoal.goalType,
-              }}
-            />
-          </div>
-        )}
-
         {/* Distribution */}
         <Card className="p-6 mb-8 bg-card/60 backdrop-blur-sm border-border/50">
           <div className="flex items-center justify-between mb-6">
@@ -423,6 +401,29 @@ export default function ResultsPage() {
             timelineMonths={results.timelineMonths}
           />
         </Card>
+
+        {/* Audio Narration - Financial Advisor */}
+        {financialProfile && parsedGoal && (
+          <div className="mb-8">
+            <AudioNarration
+              simulationResults={{
+                successProbability: results.successProbability,
+                medianOutcome: results.medianOutcome,
+                percentiles: results.percentiles,
+                mean: results.mean,
+                std: results.std,
+                worstCase: results.worstCase,
+                bestCase: results.bestCase,
+              }}
+              financialProfile={financialProfile}
+              goal={{
+                targetAmount: results.goalAmount,
+                timelineMonths: results.timelineMonths,
+                goalType: parsedGoal.goalType,
+              }}
+            />
+          </div>
+        )}
 
         {/* Sensitivity */}
         <Card className="p-6 mb-8 bg-card/60 backdrop-blur-sm border-[hsl(var(--accent))]/20">
@@ -518,6 +519,38 @@ export default function ResultsPage() {
           Results are estimates based on Monte Carlo simulation with {nSimulations.toLocaleString()} scenarios. Past performance does not guarantee future results.
         </p>
       </div>
+
+      {/* Voice Chat with Financial Advisor */}
+      {financialProfile && parsedGoal && (
+        <VoiceResultsChat
+          context={{
+            simulationResults: {
+              successProbability: results.successProbability,
+              medianOutcome: results.medianOutcome,
+              percentiles: results.percentiles,
+              mean: results.mean,
+              std: results.std,
+              worstCase: results.worstCase,
+              bestCase: results.bestCase,
+            },
+            financialProfile: {
+              monthlyIncome: financialProfile.monthlyIncome,
+              monthlySpending: financialProfile.monthlySpending,
+              liquidAssets: financialProfile.liquidAssets,
+              creditDebt: financialProfile.creditDebt,
+              loanDebt: financialProfile.loanDebt,
+              monthlyLoanPayments: financialProfile.monthlyLoanPayments,
+              spendingByCategory: financialProfile.spendingByCategory,
+              spendingVolatility: financialProfile.spendingVolatility,
+            },
+            goal: {
+              targetAmount: results.goalAmount,
+              timelineMonths: results.timelineMonths,
+              goalType: parsedGoal.goalType,
+            },
+          }}
+        />
+      )}
     </div>
   )
 }
