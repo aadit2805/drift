@@ -41,8 +41,8 @@ export function useSimulationFlow() {
       financialProfile,
       userInputs,
       goal: {
-        targetAmount: parsedGoal.targetAmount,
-        timelineMonths: parsedGoal.timelineMonths,
+        targetAmount: parsedGoal.targetAmount || 0,
+        timelineMonths: parsedGoal.timelineMonths || 12,
         goalType: parsedGoal.goalType,
       },
     }

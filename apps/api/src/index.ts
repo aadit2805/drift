@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import nessieRouter from './routes/nessie.js'
 import simulationRouter from './routes/simulation.js'
 import llmRouter from './routes/llm.js'
+import whatIfRouter from './routes/whatif.js'
 
 dotenv.config()
 
@@ -24,6 +25,7 @@ app.use('/api/nessie', nessieRouter)
 app.use('/api', nessieRouter) // Also mount nessie routes at /api for convenience
 app.use('/api', simulationRouter)
 app.use('/api', llmRouter)
+app.use('/api', whatIfRouter)
 
 // Error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

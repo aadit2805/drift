@@ -15,7 +15,11 @@ router.post('/parse-goal', async (req, res) => {
 
     const parsedGoal = await llmService.parseGoal(goal)
 
-    res.json(parsedGoal)
+    // If clarification is needed, return 200 with a flag indicating user needs to provide more info
+    res.json({
+      ...parsedGoal,
+      needsClarification: parsedGoal.needsClarification || false
+    })
   } catch (error) {
     console.error('Error parsing goal:', error)
     res.status(500).json({ error: 'Failed to parse goal' })

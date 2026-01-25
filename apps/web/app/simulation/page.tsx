@@ -54,7 +54,7 @@ export default function SimulationPage() {
   const steps = [
     { label: 'Fetching financial data', desc: 'Nessie API' },
     { label: 'Parsing goal', desc: 'LLM extraction' },
-    { label: 'Running Monte Carlo', desc: '10,000 scenarios' },
+    { label: 'Running Monte Carlo', desc: '100,000 scenarios' },
     { label: 'Analyzing sensitivity', desc: 'What-if scenarios' },
   ]
 
@@ -120,6 +120,16 @@ export default function SimulationPage() {
         let parsedGoal: ParsedGoal
         try {
           parsedGoal = await parseGoal(userInputs.goal)
+          
+          // Check if clarification is needed
+          if ('needsClarification' in parsedGoal && parsedGoal.needsClarification && 'clarifyingQuestions' in parsedGoal && parsedGoal.clarifyingQuestions) {
+            setError(
+              `Your goal needs clarification:\n\n${(parsedGoal.clarifyingQuestions as string[]).join('\n\n')}\n\nPlease go back and provide more specific details.`
+            )
+            updateStep(1, 'error', 'Needs clarification')
+            return
+          }
+          
           updateStep(1, 'done')
           setProgress(40)
         } catch (err) {
@@ -151,7 +161,7 @@ export default function SimulationPage() {
 
         // Simulation counter that syncs with visualization
         const simInterval = setInterval(() => {
-          setSimCount(prev => Math.min(prev + Math.floor(Math.random() * 400) + 200, 10000))
+          setSimCount(prev => Math.min(prev + Math.floor(Math.random() * 400) + 200, 100000))
         }, 100)
 
         const simulationRequest: SimulationRequest = {
@@ -162,12 +172,12 @@ export default function SimulationPage() {
             riskTolerance: userInputs.riskTolerance,
           },
           goal: {
-            targetAmount: parsedGoal.targetAmount,
-            timelineMonths: parsedGoal.timelineMonths,
+            targetAmount: parsedGoal.targetAmount || 0,
+            timelineMonths: parsedGoal.timelineMonths || 12,
             goalType: parsedGoal.goalType,
           },
           simulationParams: {
-            nSimulations: 10000,
+            nSimulations: 100000,
           },
         }
 
@@ -175,6 +185,7 @@ export default function SimulationPage() {
         try {
           simulationResults = await runSimulation(simulationRequest)
           clearInterval(simInterval)
+          setSimCount(100000)
           setSimCount(10000)
           // Update backend stats for visualization
           // successProbability is already a decimal (0-1), not a percentage
@@ -225,6 +236,7 @@ export default function SimulationPage() {
           sensitivity: sensitivityResults,
           parsedGoal,
           financialProfile,
+          userInputs,
           timestamp: Date.now(),
         }
         localStorage.setItem('simulationResults', JSON.stringify(resultsData))

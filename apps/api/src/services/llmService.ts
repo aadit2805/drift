@@ -11,6 +11,7 @@ interface ParsedGoal {
   timelineMonths: number | null
   constraints: string[]
   clarifyingQuestions: string[] | null
+  needsClarification?: boolean
 }
 
 export class LLMService {
@@ -41,6 +42,7 @@ Extract the following (use null if not determinable):
    - "house down payment" → 60000
    - "emergency fund" → 15000 (estimate)
    - "pay off debt" → null (will be filled from data)
+   - IMPORTANT: Flag as unrealistic if target seems way too low for the goal type (e.g., $3 for a car)
 
 3. timeline_months: Number of months. If vague:
    - "in a few years" → 36
@@ -50,7 +52,16 @@ Extract the following (use null if not determinable):
 
 4. constraints: Array of any constraints mentioned (empty array if none)
 
-5. clarifying_questions: If the goal is too vague, return questions to ask (null if clear enough)
+5. needsClarification: Boolean. Set to true if:
+   - Target amount is unrealistically low for the goal type
+   - Timeline is missing for a time-sensitive goal
+   - Goal description is too vague to estimate amounts
+   - Example: "Buy a car for $3" should have needsClarification: true
+
+6. clarifyingQuestions: If needsClarification is true, provide questions. Otherwise null.
+   Examples:
+   - "A corvette typically costs $50,000-$100,000. Did you mean $50,000 or $100,000?"
+   - "When would you like to buy this car?"
 
 Respond in JSON only, no explanation:
 {
@@ -58,6 +69,7 @@ Respond in JSON only, no explanation:
   "targetAmount": number | null,
   "timelineMonths": number | null,
   "constraints": ["string"],
+  "needsClarification": boolean,
   "clarifyingQuestions": ["string"] | null
 }`
 
@@ -73,7 +85,14 @@ Respond in JSON only, no explanation:
         throw new Error('No response from LLM')
       }
 
-      return JSON.parse(content) as ParsedGoal
+      const parsed = JSON.parse(content) as ParsedGoal
+      
+      // If clarification is needed, ensure we have questions
+      if (parsed.needsClarification && !parsed.clarifyingQuestions) {
+        parsed.clarifyingQuestions = ['Please provide more specific details about your goal amount and timeline.']
+      }
+      
+      return parsed
     } catch (error) {
       console.error('LLM parsing error:', error)
       // Fall back to mock parsing
@@ -88,6 +107,8 @@ Respond in JSON only, no explanation:
     let goalType = 'custom'
     let targetAmount: number | null = null
     let timelineMonths: number | null = null
+    let needsClarification = false
+    let clarifyingQuestions: string[] | null = null
 
     // Detect goal type
     if (lowerGoal.includes('retire')) {
@@ -110,16 +131,36 @@ Respond in JSON only, no explanation:
       goalType = 'travel'
       targetAmount = 5000
       timelineMonths = 12
+    } else if (lowerGoal.includes('car') || lowerGoal.includes('corvette')) {
+      goalType = 'major_purchase'
+      targetAmount = 50000  // Default car price
+      timelineMonths = 36
     }
 
     // Try to extract specific amounts
     const amountMatch = goal.match(/\$?([\d,]+)(?:k|K)?/)
+    let extractedAmount: number | null = null
     if (amountMatch) {
       let amount = parseInt(amountMatch[1].replace(/,/g, ''))
       if (goal.toLowerCase().includes('k') && amount < 1000) {
         amount *= 1000
       }
-      targetAmount = amount
+      extractedAmount = amount
+    }
+
+    // Check if extracted amount seems unrealistic
+    if (extractedAmount !== null && extractedAmount < 100) {
+      if (goalType === 'major_purchase' || goalType === 'retirement') {
+        needsClarification = true
+        clarifyingQuestions = [
+          `The amount $${extractedAmount} seems very low for a ${goalType}. Did you mean $${extractedAmount * 1000}?`,
+          'Could you clarify the exact amount you need?'
+        ]
+      }
+    }
+
+    if (extractedAmount !== null) {
+      targetAmount = extractedAmount
     }
 
     // Try to extract timeline
@@ -131,12 +172,22 @@ Respond in JSON only, no explanation:
       timelineMonths = parseInt(monthMatch[1])
     }
 
+    // Check if goal is too vague
+    if (targetAmount === null && goalType === 'custom') {
+      needsClarification = true
+      clarifyingQuestions = [
+        'How much money do you need to save?',
+        'When do you want to achieve this goal?'
+      ]
+    }
+
     return {
       goalType,
       targetAmount,
       timelineMonths,
       constraints: [],
-      clarifyingQuestions: null,
+      needsClarification,
+      clarifyingQuestions,
     }
   }
 
