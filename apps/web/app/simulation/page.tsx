@@ -75,41 +75,52 @@ export default function SimulationPage() {
     })
   }
 
-  // Worker animation logic
+  // Track if animation has started
+  const animationStarted = useRef(false)
+
+  // Worker animation logic - starts when simulating, continues until all done
   useEffect(() => {
-    if (phase !== 'simulating') return
+    // Start animation when we enter simulating phase
+    if (phase === 'simulating' && !animationStarted.current) {
+      animationStarted.current = true
+    }
+
+    // Don't run if we haven't started or if already complete
+    if (!animationStarted.current || animationComplete) return
 
     const workerIntervals: NodeJS.Timeout[] = []
-    
+
     workers.forEach((worker, idx) => {
+      if (worker.status === 'done') return // Skip workers already done
+
       const interval = setInterval(() => {
         setWorkers(prev => {
           const updated = [...prev]
           const current = updated[idx]
-          
+
           if (current.status === 'idle') {
             updated[idx] = { ...current, status: 'running' }
           } else if (current.status === 'running' && current.progress < 100) {
-            const increment = Math.random() * 8 + 2
+            const increment = Math.random() * 10 + 3
             const newProgress = Math.min(100, current.progress + increment)
             updated[idx] = { ...current, progress: newProgress }
-            
+
             if (newProgress >= 100) {
               updated[idx] = { ...current, progress: 100, status: 'done' }
             }
           }
-          
+
           return updated
         })
-      }, 80 + idx * 10)
-      
+      }, 70 + idx * 8)
+
       workerIntervals.push(interval)
     })
 
     return () => {
       workerIntervals.forEach(clearInterval)
     }
-  }, [phase])
+  }, [phase, animationComplete, workers])
 
   // Check if all workers are done
   useEffect(() => {

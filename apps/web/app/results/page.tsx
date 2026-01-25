@@ -190,21 +190,19 @@ export default function ResultsPage() {
 
   const buildCategoryRecommendations = () => {
     if (!financialProfile || !financialProfile.spendingByCategory) return [] as string[]
-    if (results.successProbability >= 0.75) return [] // Already likely to succeed
+    if (results.successProbability >= 0.75) return []
 
-    // Calculate how much additional savings is needed
     const shortfall = results.goalAmount - results.medianOutcome
     if (shortfall <= 0) return []
 
     const monthlyGap = shortfall / (results.timelineMonths || 1)
 
     const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
-    
-    // Convert annual spending to monthly
+
     const monthlySpending = Object.fromEntries(
       Object.entries(financialProfile.spendingByCategory).map(([k, v]) => [k, v / 12])
     )
-    
+
     const candidates = Object.entries(monthlySpending)
       .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
       .sort((a, b) => b[1] - a[1])
@@ -214,12 +212,11 @@ export default function ResultsPage() {
     const recommendations: string[] = []
     let remainingGap = monthlyGap
 
-    // Strategy 1: Find single largest category that could cover the gap
     const largestCategory = candidates[0]
     if (largestCategory) {
       const [name, monthlyAmount] = largestCategory
-      const cutRate = Math.min(0.5, remainingGap / monthlyAmount) // Max 50% cut
-      if (cutRate >= 0.05) { // At least 5%
+      const cutRate = Math.min(0.5, remainingGap / monthlyAmount)
+      if (cutRate >= 0.05) {
         const monthlyCut = monthlyAmount * cutRate
         const totalCut = monthlyCut * (results.timelineMonths || 1)
         recommendations.push(`Reduce ${name} by ${Math.round(cutRate * 100)}% (save $${Math.round(monthlyCut)}/mo) to free ${formatCurrency(totalCut)} over ${results.timelineMonths} months.`)
@@ -227,7 +224,6 @@ export default function ResultsPage() {
       }
     }
 
-    // Strategy 2: Small cuts across multiple categories
     if (remainingGap > 0 && candidates.length >= 3) {
       const topThree = candidates.slice(0, 3)
       const perCategoryCut = remainingGap / topThree.length
@@ -255,12 +251,11 @@ export default function ResultsPage() {
     if (!financialProfile || !financialProfile.spendingByCategory) return [] as { label: string; change: string; newProb: number; impact: number }[]
 
     const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
-    
-    // Convert annual spending to monthly
+
     const monthlySpending = Object.fromEntries(
       Object.entries(financialProfile.spendingByCategory).map(([k, v]) => [k, v / 12])
     )
-    
+
     const candidates = Object.entries(monthlySpending)
       .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
       .sort((a, b) => b[1] - a[1])
@@ -270,7 +265,6 @@ export default function ResultsPage() {
     const baseProb = results.successProbability
 
     return candidates.map(([name, monthlyAmount]) => {
-      // Dynamic cut rate based on category size and gap
       const shortfall = Math.max(0, results.goalAmount - results.medianOutcome)
       const monthlyGap = shortfall / (results.timelineMonths || 1)
       const suggestedCut = Math.min(0.5, Math.max(0.1, monthlyGap / monthlyAmount))
