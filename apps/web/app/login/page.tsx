@@ -3,11 +3,38 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, AlertCircle, Loader2 } from 'lucide-react'
+import { ArrowRight, AlertCircle, Loader2, ChevronRight } from 'lucide-react'
 import { validateCustomer } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+
+const DEMO_ACCOUNTS = [
+  {
+    id: '6975325e95150878eafe8c79',
+    name: 'Alex Morgan',
+    estimated_monthly_salary: 6400,
+    estimated_monthly_expenses: 4846,
+    estimated_debt: 20350,
+    net_worth: 200,
+  },
+  {
+    id: '697541cf95150878eafea4ff',
+    name: 'Jordan Smith',
+    estimated_monthly_salary: 3668,
+    estimated_monthly_expenses: 3800,
+    estimated_debt: 28200,
+    net_worth: -21000,
+  },
+  {
+    id: '69754eb095150878eafeb524',
+    name: 'Taylor Chen',
+    estimated_monthly_salary: 8334,
+    estimated_monthly_expenses: 7078,
+    estimated_debt: 850,
+    net_worth: 84650,
+  },
+]
 
 export default function LoginPage() {
   const router = useRouter()
@@ -15,6 +42,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false)
 
   useEffect(() => {
     const existingCustomerId = localStorage.getItem('customerId')
@@ -40,6 +68,30 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('customerId', customerId.trim())
+      localStorage.setItem('customerData', JSON.stringify(data.customer))
+      router.push('/dashboard')
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Connection error. Please try again.'
+      setError(errorMessage)
+      setLoading(false)
+    }
+  }
+
+  const handleDemoLogin = async (demoId: string) => {
+    setError(null)
+    setLoading(true)
+    setShowDemoAccounts(false)
+
+    try {
+      const data = await validateCustomer(demoId)
+
+      if (!data.valid) {
+        setError(data.error || 'Failed to load demo account. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      localStorage.setItem('customerId', demoId)
       localStorage.setItem('customerData', JSON.stringify(data.customer))
       router.push('/dashboard')
     } catch (err: any) {
@@ -131,6 +183,79 @@ export default function LoginPage() {
                 </>
               )}
             </Button>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/30" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="px-2 bg-background text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDemoAccounts(!showDemoAccounts)}
+              disabled={loading}
+              className="w-full mb-4"
+            >
+              Use a demo account
+            </Button>
+
+            {showDemoAccounts && (
+              <div className="space-y-3 mb-6 p-4 bg-card/50 rounded-lg border border-border/30">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <button
+                    key={account.id}
+                    onClick={() => handleDemoLogin(account.id)}
+                    disabled={loading}
+                    className="w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed border border-border/20 hover:border-border/50"
+                  >
+                    <div className="flex items-center justify-between mb-2 group">
+                      <span className="text-sm font-medium">{account.name}</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+                      <div>
+                        <div className="text-muted-foreground/70">Salary</div>
+                        <div className="font-semibold text-foreground">
+                          ${account.estimated_monthly_salary.toLocaleString('en-US', {
+                            maximumFractionDigits: 0,
+                          })}
+                          /mo
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground/70">Expenses</div>
+                        <div className="font-semibold text-foreground">
+                          ${account.estimated_monthly_expenses.toLocaleString('en-US', {
+                            maximumFractionDigits: 0,
+                          })}
+                          /mo
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground/70">Debt</div>
+                        <div className="font-semibold text-foreground">
+                          ${account.estimated_debt.toLocaleString('en-US', {
+                            maximumFractionDigits: 0,
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground/70">Net Worth</div>
+                        <div className="font-semibold text-foreground">
+                          ${account.net_worth.toLocaleString('en-US', {
+                            maximumFractionDigits: 0,
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
                       </form>
 
