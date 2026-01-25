@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react'
 import type { SensitivityAnalysis } from '@/types'
 
 interface SensitivityTableProps {
@@ -76,20 +76,35 @@ export function SensitivityTable({ baseProbability, sensitivityData, recommendat
           <td className="text-[var(--text-tertiary)]">-</td>
         </tr>
         {combinedScenarios.map((s) => {
-          const impactPositive = s.impact > 0
+          const impactRounded = Math.round(s.impact * 100)
+          const isPositive = impactRounded > 0
+          const isNegative = impactRounded < 0
+          const isNeutral = impactRounded === 0
+
+          // Determine badge style and icon
+          let badgeClass = 'badge-success'
+          let Icon = ArrowUpRight
+          if (isNegative) {
+            badgeClass = 'badge-error'
+            Icon = ArrowDownRight
+          } else if (isNeutral) {
+            badgeClass = 'badge-warning'
+            Icon = ArrowRight
+          }
+
           return (
             <tr key={s.label}>
               <td className="text-[var(--text-secondary)]">{s.label}</td>
               <td>
-                <span className={s.impact > 0 ? 'text-[var(--success)]' : 'text-[var(--warning)]'}>
+                <span className={isPositive ? 'text-[var(--success)]' : isNegative ? 'text-[var(--error)]' : 'text-[var(--warning)]'}>
                   {s.change}
                 </span>
               </td>
               <td className="font-medium tabular-nums">{Math.round(s.newProb * 100)}%</td>
               <td>
-                <span className={`badge ${impactPositive ? 'badge-success' : 'badge-error'}`}>
-                  {impactPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {impactPositive ? '+' : ''}{Math.round(s.impact * 100)}%
+                <span className={`badge ${badgeClass}`}>
+                  <Icon className="w-3 h-3" />
+                  {isPositive ? '+' : ''}{impactRounded}%
                 </span>
               </td>
             </tr>
@@ -102,17 +117,35 @@ export function SensitivityTable({ baseProbability, sensitivityData, recommendat
             <td colSpan={4} className="pt-4">
               <p className="text-sm font-medium mb-3">Highest-impact moves</p>
               <div className="grid md:grid-cols-2 gap-3">
-                {topActions.map((action, i) => (
-                  <div key={i} className="p-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium">{action.label}</span>
-                      <span className={`badge ${action.impact >= 0 ? 'badge-success' : 'badge-error'}`}>
-                        {action.impact >= 0 ? '+' : ''}{Math.round(action.impact * 100)}%
-                      </span>
+                {topActions.map((action, i) => {
+                  const impactRounded = Math.round(action.impact * 100)
+                  const isPositive = impactRounded > 0
+                  const isNegative = impactRounded < 0
+                  const isNeutral = impactRounded === 0
+
+                  let badgeClass = 'badge-success'
+                  let Icon = ArrowUpRight
+                  if (isNegative) {
+                    badgeClass = 'badge-error'
+                    Icon = ArrowDownRight
+                  } else if (isNeutral) {
+                    badgeClass = 'badge-warning'
+                    Icon = ArrowRight
+                  }
+
+                  return (
+                    <div key={i} className="p-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">{action.label}</span>
+                        <span className={`badge ${badgeClass}`}>
+                          <Icon className="w-3 h-3" />
+                          {isPositive ? '+' : ''}{impactRounded}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--text-secondary)]">{action.change}</p>
                     </div>
-                    <p className="text-xs text-[var(--text-secondary)]">{action.change}</p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </td>
           </tr>
