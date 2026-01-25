@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react'
 import { ResultsChart } from '@/components/ResultsChart'
 import { SensitivityTable } from '@/components/SensitivityTable'
+import { AudioNarration } from '@/components/AudioNarration'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -354,6 +355,29 @@ export default function ResultsPage() {
             <p className="text-xs text-muted-foreground mt-1">median vs goal</p>
           </Card>
         </div>
+
+        {/* Audio Narration */}
+        {financialProfile && parsedGoal && (
+          <div className="mb-8">
+            <AudioNarration
+              simulationResults={{
+                successProbability: results.successProbability,
+                medianOutcome: results.medianOutcome,
+                percentiles: results.percentiles,
+                mean: results.mean,
+                std: results.std,
+                worstCase: results.worstCase,
+                bestCase: results.bestCase,
+              }}
+              financialProfile={financialProfile}
+              goal={{
+                targetAmount: results.goalAmount,
+                timelineMonths: results.timelineMonths,
+                goalType: parsedGoal.goalType,
+              }}
+            />
+          </div>
+        )}
 
         {/* Distribution */}
         <Card className="p-6 mb-8">

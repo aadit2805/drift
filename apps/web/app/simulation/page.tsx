@@ -136,12 +136,12 @@ export default function SimulationPage() {
 
         const config: VisualizationConfig = {
           nPaths: 100,
-          months: parsedGoal.timelineMonths,
+          months: parsedGoal.timelineMonths ?? 36,
           startingBalance: financialProfile.liquidAssets - financialProfile.creditDebt,
           monthlyIncome: financialProfile.monthlyIncome,
           monthlySpending: financialProfile.monthlySpending + financialProfile.monthlyBills,
           spendingVolatility: financialProfile.spendingVolatility || 0.15,
-          goalAmount: parsedGoal.targetAmount,
+          goalAmount: parsedGoal.targetAmount ?? 50000,
           riskTolerance: userInputs.riskTolerance || 'medium',
         }
         setVizConfig(config)

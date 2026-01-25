@@ -14,7 +14,9 @@
     "dotenv": "^16.3.1",
     "axios": "^1.6.0",
     "openai": "^4.24.0",
-    "zod": "^3.22.0"
+    "zod": "^3.22.0",
+    "@google/generative-ai": "^0.21.0",
+    "elevenlabs": "^1.59.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

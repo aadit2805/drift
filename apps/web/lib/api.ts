@@ -91,4 +91,50 @@ export const getAccounts = async (customerId: string) => {
   return response.data
 }
 
+// AI Endpoints for narrative and audio generation
+export interface NarrativeRequest {
+  simulationResults: SimulationResults
+  financialProfile: FinancialProfile
+  goal: {
+    targetAmount: number
+    timelineMonths: number
+    goalType: string
+  }
+}
+
+export interface BriefingResponse {
+  narrative: string
+  audioAvailable: boolean
+  audio?: string // base64-encoded audio
+  contentType?: string
+  message?: string
+}
+
+export const generateNarrative = async (request: NarrativeRequest): Promise<{ narrative: string }> => {
+  const response = await api.post('/api/ai/generate-narrative', request)
+  return response.data
+}
+
+export const generateAudio = async (text: string, voice?: string): Promise<ArrayBuffer> => {
+  const response = await api.post('/api/ai/generate-audio', { text, voice }, {
+    responseType: 'arraybuffer'
+  })
+  return response.data
+}
+
+export const generateBriefing = async (
+  request: NarrativeRequest & { voice?: string }
+): Promise<BriefingResponse> => {
+  const response = await api.post('/api/ai/generate-briefing', request)
+  return response.data
+}
+
+export const getAvailableVoices = async (): Promise<{
+  configured: boolean
+  voices: { id: string; name: string }[]
+}> => {
+  const response = await api.get('/api/ai/voices')
+  return response.data
+}
+
 export default api
