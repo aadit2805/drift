@@ -61,7 +61,7 @@ export function AudioNarration({ simulationResults, financialProfile, goal }: Au
     }
   }, [])
 
-  const fetchBriefing = async () => {
+  const fetchBriefing = async (autoPlay: boolean = false) => {
     setIsLoading(true)
     setError(null)
 
@@ -108,6 +108,23 @@ export function AudioNarration({ simulationResults, financialProfile, goal }: Au
           setError('Failed to load audio')
           setAudioAvailable(false)
         }
+
+        // Auto-play if requested
+        if (autoPlay) {
+          audio.oncanplaythrough = async () => {
+            try {
+              await audio.play()
+              setIsPlaying(true)
+              progressIntervalRef.current = setInterval(() => {
+                if (audioRef.current) {
+                  setProgress(audioRef.current.currentTime)
+                }
+              }, 100)
+            } catch (playError) {
+              console.error('Auto-play failed:', playError)
+            }
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to fetch briefing:', err)
@@ -119,7 +136,8 @@ export function AudioNarration({ simulationResults, financialProfile, goal }: Au
 
   const togglePlay = async () => {
     if (!narrative) {
-      await fetchBriefing()
+      // First click - fetch and auto-play
+      await fetchBriefing(true)
       return
     }
 
@@ -179,7 +197,7 @@ export function AudioNarration({ simulationResults, financialProfile, goal }: Au
       audioRef.current.pause()
       audioRef.current.src = ''
     }
-    await fetchBriefing()
+    await fetchBriefing(true)
   }
 
   return (

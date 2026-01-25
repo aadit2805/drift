@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Mic, Send, Loader2, Volume2 } from 'lucide-react'
+import { Mic, Send, Loader2, Volume2, MessageCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { sendVoiceGoal, type ConversationMessage, type VoiceGoalResponse } from '@/lib/api'
+import { sendVoiceResults, type ConversationMessage, type VoiceResultsContext } from '@/lib/api'
 
-interface VoiceGoalInputProps {
-  onGoalComplete: (goal: { targetAmount: number; timelineMonths: number; goalType: string }) => void
+interface VoiceResultsChatProps {
+  context: VoiceResultsContext
 }
 
 interface DisplayMessage extends ConversationMessage {
@@ -15,12 +15,13 @@ interface DisplayMessage extends ConversationMessage {
   isPlaying?: boolean
 }
 
-export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
+export function VoiceResultsChat({ context }: VoiceResultsChatProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {
       id: 'initial',
       role: 'assistant',
-      content: "Hey! What financial goal are you working towards?",
+      content: "I've analyzed your simulation results. What would you like to know about your financial outlook?",
     },
   ])
   const [isRecording, setIsRecording] = useState(false)
@@ -33,12 +34,10 @@ export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
   const chunksRef = useRef<Blob[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
       if (currentAudio) {
@@ -49,7 +48,6 @@ export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
   }, [currentAudio])
 
   const playAudio = (base64Audio: string, messageId: string) => {
-    // Stop any currently playing audio
     if (currentAudio) {
       currentAudio.pause()
       currentAudio.src = ''
@@ -70,48 +68,20 @@ export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
     audio.play().catch(console.error)
   }
 
-  const playAudioAndWait = (base64Audio: string, messageId: string, onComplete: () => void) => {
-    // Stop any currently playing audio
-    if (currentAudio) {
-      currentAudio.pause()
-      currentAudio.src = ''
-    }
-
-    const audio = new Audio(`data:audio/mpeg;base64,${base64Audio}`)
-    setCurrentAudio(audio)
-    setPlayingMessageId(messageId)
-
-    audio.onended = () => {
-      setPlayingMessageId(null)
-      onComplete()
-    }
-
-    audio.onerror = () => {
-      setPlayingMessageId(null)
-      onComplete() // Still transition even if audio fails
-    }
-
-    audio.play().catch(() => {
-      onComplete() // Still transition even if play fails
-    })
-  }
-
   const processResponse = async (input: { audio?: Blob; text?: string }) => {
     setIsProcessing(true)
 
     // Track if this was a voice input - only play audio responses for voice inputs
     const wasVoiceInput = !!input.audio
 
-    // Build conversation history (exclude display-only fields)
     const history: ConversationMessage[] = messages.map(({ role, content }) => ({
       role,
       content,
     }))
 
     try {
-      const response = await sendVoiceGoal(input, history)
+      const response = await sendVoiceResults(input, history, context)
 
-      // Add user message
       const userMessageId = `user-${Date.now()}`
       const userMessage: DisplayMessage = {
         id: userMessageId,
@@ -119,7 +89,6 @@ export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
         content: response.userTranscript,
       }
 
-      // Add assistant message
       const assistantMessageId = `assistant-${Date.now()}`
       const assistantMessage: DisplayMessage = {
         id: assistantMessageId,
@@ -129,36 +98,18 @@ export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
 
       setMessages(prev => [...prev, userMessage, assistantMessage])
 
-      // Check if goal is complete
-      if (response.isComplete && response.parsedGoal) {
-        // Only play audio if user used voice input
-        if (wasVoiceInput && response.audioAvailable && response.audio) {
-          playAudioAndWait(response.audio, assistantMessageId, () => {
-            // Pause like a newscaster before transitioning
-            setTimeout(() => {
-              onGoalComplete(response.parsedGoal!)
-            }, 1200)
-          })
-        } else {
-          // Text input or no audio - just pause then transition
-          setTimeout(() => {
-            onGoalComplete(response.parsedGoal!)
-          }, 1500)
-        }
-      } else {
-        // Not complete yet - only play audio if user used voice input
-        if (wasVoiceInput && response.audioAvailable && response.audio) {
-          playAudio(response.audio, assistantMessageId)
-        }
+      // Only play audio if user used voice input
+      if (wasVoiceInput && response.audioAvailable && response.audio) {
+        playAudio(response.audio, assistantMessageId)
       }
     } catch (error) {
-      console.error('Voice goal error:', error)
+      console.error('Voice results error:', error)
       setMessages(prev => [
         ...prev,
         {
           id: `error-${Date.now()}`,
           role: 'assistant',
-          content: "Sorry, I had trouble understanding that. Could you try again?",
+          content: "Sorry, I had trouble with that. Could you try again?",
         },
       ])
     } finally {
@@ -208,17 +159,42 @@ export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
     await processResponse({ text })
   }
 
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[hsl(var(--accent))] text-white shadow-lg hover:scale-105 transition-transform flex items-center justify-center"
+      >
+        <MessageCircle className="w-6 h-6" />
+      </button>
+    )
+  }
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="fixed bottom-6 right-6 z-50 w-96 max-h-[32rem] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
+          <span className="text-sm font-medium">Financial Advisor</span>
+        </div>
+        <button
+          onClick={() => setIsOpen(false)}
+          className="p-1 hover:bg-muted rounded-full transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 mb-6 max-h-64">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+              className={`max-w-[85%] rounded-2xl px-3 py-2 ${
                 message.role === 'user'
                   ? 'bg-foreground text-background'
                   : 'bg-muted text-foreground'
@@ -237,7 +213,7 @@ export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
 
         {isProcessing && (
           <div className="flex justify-start">
-            <div className="bg-muted rounded-2xl px-4 py-2">
+            <div className="bg-muted rounded-2xl px-3 py-2">
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           </div>
@@ -246,53 +222,53 @@ export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Voice Input */}
-      <div className="flex flex-col items-center gap-4">
-        <button
-          type="button"
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          onMouseLeave={stopRecording}
-          onTouchStart={startRecording}
-          onTouchEnd={stopRecording}
-          disabled={isProcessing}
-          className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
-            isRecording
-              ? 'bg-[var(--error)] scale-110 shadow-lg shadow-[var(--error)]/30'
-              : isProcessing
-              ? 'bg-muted cursor-not-allowed'
-              : 'bg-foreground hover:scale-105 active:scale-95'
-          }`}
-        >
-          {isProcessing ? (
-            <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
-          ) : (
-            <Mic className={`w-8 h-8 ${isRecording ? 'text-white animate-pulse' : 'text-background'}`} />
-          )}
-        </button>
-        <p className="text-sm text-muted-foreground">
-          {isRecording ? 'Listening... release to send' : isProcessing ? 'Processing...' : 'Hold to speak'}
-        </p>
-      </div>
-
-      {/* Text Input Fallback */}
-      <div className="mt-6 pt-4 border-t border-border">
-        <form onSubmit={handleTextSubmit} className="flex gap-2">
-          <Input
-            value={textInput}
-            onChange={(e) => setTextInput(e.target.value)}
-            placeholder="Or type your goal..."
-            disabled={isProcessing || isRecording}
-            className="flex-1"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!textInput.trim() || isProcessing || isRecording}
+      {/* Input Area */}
+      <div className="p-3 border-t border-border bg-muted/20">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onMouseLeave={stopRecording}
+            onTouchStart={startRecording}
+            onTouchEnd={stopRecording}
+            disabled={isProcessing}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${
+              isRecording
+                ? 'bg-[var(--error)] scale-110'
+                : isProcessing
+                ? 'bg-muted cursor-not-allowed'
+                : 'bg-foreground hover:scale-105'
+            }`}
           >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
+            {isProcessing ? (
+              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+            ) : (
+              <Mic className={`w-4 h-4 ${isRecording ? 'text-white animate-pulse' : 'text-background'}`} />
+            )}
+          </button>
+
+          <form onSubmit={handleTextSubmit} className="flex gap-2 flex-1">
+            <Input
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder={isRecording ? 'Listening...' : 'Ask about your results...'}
+              disabled={isProcessing || isRecording}
+              className="flex-1 h-10"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="h-10 w-10 shrink-0"
+              disabled={!textInput.trim() || isProcessing || isRecording}
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
+        </div>
+        {isRecording && (
+          <p className="text-xs text-center text-muted-foreground mt-2">Release to send</p>
+        )}
       </div>
     </div>
   )
