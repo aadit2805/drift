@@ -1,9 +1,4 @@
-import OpenAI from 'openai'
-
-// Only initialize OpenAI client if API key is present
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null
+import { geminiService } from './geminiService.js'
 
 interface ParsedGoal {
   goalType: string
@@ -16,6 +11,8 @@ interface ParsedGoal {
 
 export class LLMService {
   async parseGoal(goal: string): Promise<ParsedGoal> {
+    // Delegate to Gemini service for goal parsing
+    return geminiService.parseGoal(goal)
     // If no API key or client, use mock parsing
     if (!openai) {
       return this.mockParseGoal(goal)
@@ -213,33 +210,15 @@ Respond in JSON only, no explanation:
     financialProfile: any,
     goal: any
   ): Promise<string[]> {
-    // Mock recommendations for now
-    const recommendations: string[] = []
-
-    if (simulationResults.successProbability < 0.5) {
-      recommendations.push(
-        'Your current path has less than 50% chance of success. Consider increasing your savings rate or extending your timeline.'
-      )
-    }
-
-    if (financialProfile.monthlySpending > financialProfile.monthlyIncome * 0.7) {
-      recommendations.push(
-        'You\'re spending over 70% of your income. Reducing discretionary spending could significantly improve your odds.'
-      )
-    }
-
-    if (simulationResults.percentiles.p10 < goal.targetAmount * 0.5) {
-      recommendations.push(
-        'In worst-case scenarios, you may fall significantly short. Consider building an emergency fund first.'
-      )
-    }
-
-    if (recommendations.length === 0) {
-      recommendations.push(
-        'You\'re on a good track! Stay consistent with your savings plan.'
-      )
-    }
-
-    return recommendations
+    // Delegate to Gemini service for AI-powered recommendations
+    return geminiService.generateRecommendations(
+      simulationResults,
+      financialProfile,
+      {
+        targetAmount: goal.targetAmount,
+        timelineMonths: goal.timelineMonths,
+        goalType: goal.goalType,
+      }
+    )
   }
 }
