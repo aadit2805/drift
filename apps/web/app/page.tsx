@@ -36,7 +36,7 @@ export default function Home() {
         <div className="hero-glow" />
         <p className="text-sm text-muted-foreground mb-4">Monte Carlo Simulation</p>
         <h1 className="text-4xl font-medium tracking-tight mb-6">
-          See 10,000 versions of your financial future
+          See 100,000 versions of your financial future
         </h1>
         <p className="text-lg text-muted-foreground mb-8 max-w-xl">
           Stop planning with single numbers. Run probability simulations on your real financial data to know your actual odds of reaching any goal.
@@ -120,7 +120,7 @@ export default function Home() {
             {[
               { n: '01', title: 'Connect your bank', desc: 'We pull 6 months of transactions from Capital One to understand your real spending.' },
               { n: '02', title: 'Set your goal', desc: 'Type it naturally: "Save $50k for a house in 3 years". Our parser handles the rest.' },
-              { n: '03', title: 'Run simulations', desc: '10,000 Monte Carlo scenarios in ~500ms. We model income variance, expense shocks, and market returns.' },
+              { n: '03', title: 'Run simulations', desc: '100,000 Monte Carlo scenarios in ~1-2s. We model income variance, expense shocks, and market returns.' },
               { n: '04', title: 'Get probabilities', desc: 'See your success rate, percentile outcomes, and what changes would improve your odds.' },
             ].map((step) => (
               <div key={step.n} className="flex gap-6">
@@ -144,7 +144,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-6">
             {[
               { title: 'Real data', desc: 'Uses your actual transaction history, not estimates. Categories are auto-detected.' },
-              { title: 'HPC engine', desc: 'NumPy vectorization + multiprocessing. 10,000 simulations in under 500ms.' },
+              { title: 'HPC engine', desc: 'NumPy vectorization + multiprocessing. 100,000 simulations in 1-2 seconds.' },
               { title: 'Sensitivity analysis', desc: 'See exactly how much reducing spending or increasing income affects your odds.' },
               { title: 'Variance modeling', desc: 'Income shocks, expense variance, market returns — all modeled realistically.' },
             ].map((f) => (

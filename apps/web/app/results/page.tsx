@@ -9,7 +9,22 @@ import { SensitivityTable } from '@/components/SensitivityTable'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions } from '@/types'
+import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions, UserInputs, Assumptions } from '@/types'
+
+const HARDCODED_ASSUMPTIONS: Assumptions = {
+  annualReturnMean: 0.07,
+  annualReturnStd: 0.15,
+  inflationRate: 0.025,
+  inflationVolatility: 0.01,
+  annualRaiseMean: 0.03,
+  annualRaiseFrequency: 'annual',
+  promotionProbabilitySemiAnnual: 0.08,
+  promotionRaiseMean: 0.06,
+  emergencyProbabilityMonthly: 0.08,
+  emergencyAmountRange: '$500 - $2,000',
+  incomeVolatility: 0.05,
+  expenseVolatility: 0.12,
+}
 
 function formatCurrency(value: number): string {
   const num = Number(value) || 0
@@ -55,6 +70,11 @@ function formatCurrencyWithSign(value: number): string {
   return `+$${rounded.toLocaleString()}`
 }
 
+function formatPercent(value: number, digits = 0): string {
+  const pct = (Number(value) || 0) * 100
+  return `${pct.toFixed(digits).replace(/\.0$/, '')}%`
+}
+
 interface Results {
   successProbability: number
   medianOutcome: number
@@ -65,7 +85,7 @@ interface Results {
   std?: number
   worstCase?: number
   bestCase?: number
-  assumptions?: SimulationAssumptions
+  assumptions?: Assumptions
 }
 
 interface StoredResults {
@@ -73,7 +93,8 @@ interface StoredResults {
   sensitivity: SensitivityAnalysis | null
   parsedGoal: ParsedGoal
   financialProfile: FinancialProfile
-  assumptions?: SimulationAssumptions
+  userInputs?: UserInputs
+  assumptions?: Assumptions
   timestamp: number
 }
 
@@ -83,9 +104,9 @@ export default function ResultsPage() {
   const [sensitivity, setSensitivity] = useState<SensitivityAnalysis | null>(null)
   const [parsedGoal, setParsedGoal] = useState<ParsedGoal | null>(null)
   const [financialProfile, setFinancialProfile] = useState<FinancialProfile | null>(null)
-  const [assumptions, setAssumptions] = useState<SimulationAssumptions | undefined>(undefined)
+  const [userInputs, setUserInputs] = useState<UserInputs | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [nSimulations, setNSimulations] = useState(10000)
+  const [nSimulations, setNSimulations] = useState(100000)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
@@ -118,7 +139,7 @@ export default function ResultsPage() {
       setSensitivity(data.sensitivity)
       setParsedGoal(data.parsedGoal)
       setFinancialProfile(data.financialProfile)
-      setAssumptions(data.results?.assumptions || data.assumptions)
+      setUserInputs(data.userInputs || null)
     } catch (err) {
       console.error('Failed to parse stored results:', err)
       setError('Failed to load simulation results. Please run a new simulation.')
@@ -127,8 +148,9 @@ export default function ResultsPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
         <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-muted-foreground">Loading (100,000 simulations)</p>
       </div>
     )
   }
@@ -154,8 +176,9 @@ export default function ResultsPage() {
 
   if (!results) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
         <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-muted-foreground">Preparing results (100,000 simulations)</p>
       </div>
     )
   }
@@ -167,21 +190,61 @@ export default function ResultsPage() {
 
   const buildCategoryRecommendations = () => {
     if (!financialProfile || !financialProfile.spendingByCategory) return [] as string[]
+    if (results.successProbability >= 0.75) return [] // Already likely to succeed
+
+    // Calculate how much additional savings is needed
+    const shortfall = results.goalAmount - results.medianOutcome
+    if (shortfall <= 0) return []
+
+    const monthlyGap = shortfall / (results.timelineMonths || 1)
 
     const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
-    const candidates = Object.entries(financialProfile.spendingByCategory)
+    
+    // Convert annual spending to monthly
+    const monthlySpending = Object.fromEntries(
+      Object.entries(financialProfile.spendingByCategory).map(([k, v]) => [k, v / 12])
+    )
+    
+    const candidates = Object.entries(monthlySpending)
       .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
 
     if (candidates.length === 0) return []
 
-    return candidates.map(([name, amount]) => {
-      const cutRate = 0.15
-      const monthlyCut = amount * cutRate
-      const totalCut = monthlyCut * (results.timelineMonths || 1)
-      return `Trim ${name} by ${Math.round(cutRate * 100)}% (~${formatCurrencyLocal(monthlyCut)}/mo) to free ${formatCurrencyLocal(totalCut)} over your timeline.`
-    })
+    const recommendations: string[] = []
+    let remainingGap = monthlyGap
+
+    // Strategy 1: Find single largest category that could cover the gap
+    const largestCategory = candidates[0]
+    if (largestCategory) {
+      const [name, monthlyAmount] = largestCategory
+      const cutRate = Math.min(0.5, remainingGap / monthlyAmount) // Max 50% cut
+      if (cutRate >= 0.05) { // At least 5%
+        const monthlyCut = monthlyAmount * cutRate
+        const totalCut = monthlyCut * (results.timelineMonths || 1)
+        recommendations.push(`Reduce ${name} by ${Math.round(cutRate * 100)}% (save $${Math.round(monthlyCut)}/mo) to free ${formatCurrency(totalCut)} over ${results.timelineMonths} months.`)
+        remainingGap -= monthlyCut
+      }
+    }
+
+    // Strategy 2: Small cuts across multiple categories
+    if (remainingGap > 0 && candidates.length >= 3) {
+      const topThree = candidates.slice(0, 3)
+      const perCategoryCut = remainingGap / topThree.length
+      const smallCuts = topThree.map(([name, amount]) => {
+        const cutRate = Math.min(0.25, perCategoryCut / amount)
+        const monthlyCut = amount * cutRate
+        return { name, cutRate, monthlyCut, amount }
+      }).filter(c => c.cutRate >= 0.05)
+
+      if (smallCuts.length > 0) {
+        const totalSavings = smallCuts.reduce((sum, c) => sum + c.monthlyCut, 0)
+        const categories = smallCuts.map(c => `${c.name} (${Math.round(c.cutRate * 100)}%, $${Math.round(c.monthlyCut)}/mo)`).join(', ')
+        recommendations.push(`Alternatively, make small cuts across: ${categories} for a total of $${Math.round(totalSavings)}/mo.`)
+      }
+    }
+
+    return recommendations
   }
 
   const recommendations = [...buildCategoryRecommendations(), ...(sensitivity?.recommendations || [])]
@@ -192,22 +255,34 @@ export default function ResultsPage() {
     if (!financialProfile || !financialProfile.spendingByCategory) return [] as { label: string; change: string; newProb: number; impact: number }[]
 
     const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
-    const candidates = Object.entries(financialProfile.spendingByCategory)
+    
+    // Convert annual spending to monthly
+    const monthlySpending = Object.fromEntries(
+      Object.entries(financialProfile.spendingByCategory).map(([k, v]) => [k, v / 12])
+    )
+    
+    const candidates = Object.entries(monthlySpending)
       .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
 
-    const totalSpend = Math.max(financialProfile.monthlySpending || 0, 1)
+    const totalMonthlySpend = Math.max(financialProfile.monthlySpending || 0, 1)
     const baseProb = results.successProbability
 
-    return candidates.map(([name, amount]) => {
-      const cutRate = 0.15
-      const overallCutFraction = (amount * cutRate) / totalSpend
-      const estimatedImpact = spendingSensitivity ? spendingSensitivity.impact * (overallCutFraction / 0.10) : 0
+    return candidates.map(([name, monthlyAmount]) => {
+      // Dynamic cut rate based on category size and gap
+      const shortfall = Math.max(0, results.goalAmount - results.medianOutcome)
+      const monthlyGap = shortfall / (results.timelineMonths || 1)
+      const suggestedCut = Math.min(0.5, Math.max(0.1, monthlyGap / monthlyAmount))
+
+      const cutAmount = monthlyAmount * suggestedCut
+      const overallCutFraction = cutAmount / totalMonthlySpend
+      const estimatedImpact = spendingSensitivity ? spendingSensitivity.impact * (overallCutFraction / 0.10) : 0.05
       const newProb = Math.min(1, Math.max(0, baseProb + estimatedImpact))
+
       return {
         label: `Cut ${name}`,
-        change: `${Math.round(cutRate * 100)}% in ${name} (~${formatCurrencyLocal(amount * cutRate)}/mo)`,
+        change: `${Math.round(suggestedCut * 100)}% (~${formatCurrencyLocal(cutAmount)}/mo from $${Math.round(monthlyAmount)}/mo)`,
         newProb,
         impact: estimatedImpact,
       }
@@ -219,6 +294,7 @@ export default function ResultsPage() {
   const goalNeedsClarification = parsedGoal?.clarifyingQuestions && parsedGoal.clarifyingQuestions.length > 0
 
   const effectiveIncome = financialProfile?.monthlyIncome || 0
+  const assumptions = results.assumptions || HARDCODED_ASSUMPTIONS
 
   return (
     <div className="min-h-screen">
@@ -312,7 +388,7 @@ export default function ResultsPage() {
                     <td className="font-medium tabular-nums">{formatCurrency(row.value)}</td>
                     <td>
                       <Badge variant={positive ? 'success' : 'error'}>
-                        {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                        {positive ? <ArrowUpRight className="w-3 h-3 text-[var(--success)]" /> : <ArrowDownRight className="w-3 h-3" />}
                         {formatCurrencyWithSign(diff)}
                       </Badge>
                     </td>
@@ -330,10 +406,10 @@ export default function ResultsPage() {
         </Card>
 
         {/* Sensitivity */}
-        <Card className="p-6 mb-8">
+        <Card className="p-6 mb-8 border-[var(--accent)]/40 shadow-sm bg-background/80">
           <div className="mb-6">
-            <h2 className="font-medium">What-if analysis</h2>
-            <p className="text-sm text-muted-foreground">How changes affect your probability</p>
+            <h2 className="font-medium">What-if Analysis</h2>
+            <p className="text-sm text-muted-foreground">Scenario impacts to help achive your goal</p>
           </div>
           <SensitivityTable
             baseProbability={results.successProbability}
@@ -343,28 +419,78 @@ export default function ResultsPage() {
           />
         </Card>
 
-        {/* Assumptions */}
+        {/* Account analysis & model assumptions */}
         <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-medium">Assumptions</h2>
-              <p className="text-sm text-muted-foreground">How we interpreted your data and goal</p>
+              <h2 className="font-medium">Account analysis & assumptions</h2>
+              <p className="text-sm text-muted-foreground">What we read from your accounts and the model settings driving results</p>
             </div>
           </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Monthly income (from Nessie)</p>
-              <p className="font-medium">{formatCurrencyLocal(effectiveIncome)}/mo</p>
-              {assumptions?.salaryDetails?.notes && assumptions.salaryDetails.notes.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">{assumptions.salaryDetails.notes[0]}</p>
-              )}
+
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="p-4 rounded-lg border border-[var(--border-primary)] bg-muted/30">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Account snapshot</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="border-l-4 border-[var(--accent)] pl-3">
+                  <p className="text-xs text-muted-foreground">Monthly income</p>
+                  <p className="text-xl font-medium tabular-nums">{formatCurrencyLocal(effectiveIncome)}</p>
+                </div>
+                <div className="border-l-4 border-[var(--warning)] pl-3">
+                  <p className="text-xs text-muted-foreground">Monthly spending</p>
+                  <p className="text-xl font-medium tabular-nums">{financialProfile ? formatCurrencyLocal(financialProfile.monthlySpending || 0) : 'N/A'}</p>
+                  {financialProfile?.spendingVolatility !== undefined && (
+                    <p className="text-xs text-[var(--text-tertiary)]">±{formatPercent(financialProfile.spendingVolatility)}</p>
+                  )}
+                </div>
+                <div className="border-l-4 border-[var(--success)] pl-3">
+                  <p className="text-xs text-muted-foreground">Liquid assets</p>
+                  <p className="text-xl font-medium tabular-nums">{financialProfile ? formatCurrencyLocal(financialProfile.liquidAssets || 0) : 'N/A'}</p>
+                </div>
+                <div className="border-l-4 border-[var(--error)] pl-3">
+                  <p className="text-xs text-muted-foreground">Debt (credit + loans)</p>
+                  <p className="text-xl font-medium tabular-nums">{financialProfile ? formatCurrencyLocal((financialProfile.creditDebt || 0) + (financialProfile.loanDebt || 0)) : 'N/A'}</p>
+                  {financialProfile && (
+                    <p className="text-xs text-[var(--text-tertiary)]">Monthly payments {formatCurrencyLocal(financialProfile.monthlyLoanPayments || 0)}</p>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Spending baseline</p>
-              <p className="font-medium">{financialProfile ? `${formatCurrencyLocal(financialProfile.monthlySpending || 0)}/mo` : 'Not available'}</p>
-              {financialProfile?.spendingVolatility !== undefined && (
-                <p className="text-xs text-muted-foreground mt-1">Volatility {Math.round(financialProfile.spendingVolatility * 100)}%</p>
-              )}
+
+            <div className="p-4 rounded-lg border border-[var(--border-primary)] bg-muted/30">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Model assumptions</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="border-l-4 border-[var(--accent)] pl-3">
+                  <p className="text-xs text-muted-foreground">Investment returns</p>
+                  <p className="text-xl font-medium tabular-nums">{formatPercent(assumptions.annualReturnMean, 1)} ± {formatPercent(assumptions.annualReturnStd, 1)}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">annualized mean &amp; volatility</p>
+                </div>
+                <div className="border-l-4 border-[var(--warning)] pl-3">
+                  <p className="text-xs text-muted-foreground">Inflation</p>
+                  <p className="text-xl font-medium tabular-nums">{formatPercent(assumptions.inflationRate, 1)}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Volatility {formatPercent(assumptions.inflationVolatility, 1)}</p>
+                </div>
+                <div className="border-l-4 border-[var(--success)] pl-3">
+                  <p className="text-xs text-muted-foreground">Income growth</p>
+                  <p className="text-xl font-medium tabular-nums">Raises {formatPercent(assumptions.annualRaiseMean, 1)} {assumptions.annualRaiseFrequency}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Promo {formatPercent(assumptions.promotionProbabilitySemiAnnual, 1)} semi-annual, +{formatPercent(assumptions.promotionRaiseMean, 1)}</p>
+                </div>
+                <div className="border-l-4 border-[var(--error)] pl-3">
+                  <p className="text-xs text-muted-foreground">Emergency events</p>
+                  <p className="text-xl font-medium tabular-nums">{formatPercent(assumptions.emergencyProbabilityMonthly, 1)} monthly</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Amount {assumptions.emergencyAmountRange}</p>
+                </div>
+                <div className="border-l-4 border-[var(--accent)] pl-3">
+                  <p className="text-xs text-muted-foreground">Volatility</p>
+                  <p className="text-xl font-medium tabular-nums">Income {formatPercent(assumptions.incomeVolatility, 1)}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Expenses {formatPercent(assumptions.expenseVolatility, 1)}</p>
+                </div>
+                <div className="border-l-4 border-muted-foreground pl-3">
+                  <p className="text-xs text-muted-foreground">Simulation scale</p>
+                  <p className="text-xl font-medium tabular-nums">{nSimulations.toLocaleString()}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">Monte Carlo runs</p>
+                </div>
+              </div>
             </div>
           </div>
         </Card>

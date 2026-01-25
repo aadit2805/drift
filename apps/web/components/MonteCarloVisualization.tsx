@@ -69,7 +69,7 @@ export function MonteCarloVisualization({
   backendSimCount = 0,
   backendSuccessRate,
   backendExpectedValue,
-  totalSimulations = 10000,
+  totalSimulations = 100000,
 }: MonteCarloVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number | null>(null)

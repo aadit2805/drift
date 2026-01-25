@@ -102,6 +102,16 @@ def main():
     # Execute requested operation
     try:
         if args.mode == 'simulate':
+            # Apply risk tolerance adjustments if not already set via simulation_params
+            if request.simulation_params is None:
+                request.simulation_params = SimulationParams()
+            
+            # Adjust returns based on risk tolerance
+            request.simulation_params = SimulationParams.from_risk_tolerance(
+                request.user_inputs.risk_tolerance,
+                base_params=request.simulation_params
+            )
+            
             results = run_monte_carlo(request, n_workers=args.workers)
             output = results_to_camel_case(results)
 

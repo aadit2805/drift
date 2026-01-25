@@ -146,19 +146,24 @@ You are a financial advisor. Parse the following savings goal and extract:
 1. Type of goal (retirement, house, emergency_fund, vacation, college, car, custom)
 2. Target amount in USD
 3. Timeline in months
+4. Whether the goal description contains enough information to parse (realistic and clear)
 
 User context:
 - Monthly income: ${monthly_income:,.0f}
 - Risk tolerance: {risk_tolerance}
 - Goal description: "{goal_text}"
 
+Important: If the goal seems unrealistic or lacks critical information (e.g., "buy a corvette for $3" or goals with extremely low amounts relative to stated timeline), flag it and provide clarifying questions needed.
+
 Respond as JSON with these fields:
 {{
     "goal_type": "string (one of: retirement, house, emergency_fund, vacation, college, car, custom)",
-    "target_amount": number (USD),
-    "timeline_months": number,
+    "target_amount": number (USD) or null if unclear,
+    "timeline_months": number or null if unclear,
     "description": "string describing the goal",
-    "confidence": number (0-1, how confident are you in this parsing)
+    "confidence": number (0-1, how confident are you in this parsing),
+    "needs_clarification": boolean (true if goal seems unrealistic or lacks critical info),
+    "clarifying_questions": ["string"] or [] (questions to ask the user for clarification)
 }}
 
 Example: If user says "I want to retire in 15 years", respond:
@@ -167,7 +172,20 @@ Example: If user says "I want to retire in 15 years", respond:
     "target_amount": {monthly_income * 12 * 25},
     "timeline_months": 180,
     "description": "Retirement in 15 years (25x annual salary)",
-    "confidence": 0.9
+    "confidence": 0.9,
+    "needs_clarification": false,
+    "clarifying_questions": []
+}}
+
+Example: If user says "Buy a corvette for $3", respond:
+{{
+    "goal_type": "car",
+    "target_amount": null,
+    "timeline_months": null,
+    "description": "Purchase a corvette",
+    "confidence": 0.2,
+    "needs_clarification": true,
+    "clarifying_questions": ["A corvette typically costs $50,000-$100,000+. Did you mean $300 or $30,000?", "When do you want to buy the corvette?"]
 }}
 """
         
@@ -184,7 +202,7 @@ Example: If user says "I want to retire in 15 years", respond:
                 }
             ],
             temperature=0.3,
-            max_tokens=200
+            max_tokens=300
         )
         
         # Parse response
@@ -197,6 +215,24 @@ Example: If user says "I want to retire in 15 years", respond:
             response_text = response_text.split("```")[1].split("```")[0].strip()
         
         parsed = json.loads(response_text)
+        
+        # If clarification is needed, return a goal with low confidence and clarifying questions
+        if parsed.get("needs_clarification", False):
+            # Return a fallback goal but flag it for user clarification
+            questions = parsed.get("clarifying_questions", [])
+            goal = ParsedGoal(
+                goal_type=parsed.get("goal_type", "custom"),
+                target_amount=parsed.get("target_amount", monthly_income * 12 * 5),  # Default conservative estimate
+                timeline_months=parsed.get("timeline_months", 36),
+                description=parsed.get("description", "Goal needs clarification") + " (NEEDS CLARIFICATION)",
+                confidence=min(0.3, float(parsed.get("confidence", 0.2))),
+                source="ai_needs_clarification"
+            )
+            
+            # Log the clarifying questions for frontend
+            logger.warning(f"Goal needs clarification: {questions}")
+            
+            return goal
 
         # Build ParsedGoal with source metadata
         goal = ParsedGoal(
