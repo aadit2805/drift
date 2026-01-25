@@ -409,7 +409,7 @@ export default function ResultsPage() {
         <Card className="p-6 mb-8 border-[var(--accent)]/40 shadow-sm bg-background/80">
           <div className="mb-6">
             <h2 className="font-medium">What-if Analysis</h2>
-            <p className="text-sm text-muted-foreground">Scenario impacts to help achive your goal</p>
+            <p className="text-sm text-muted-foreground">Changes to help achieve your goal</p>
           </div>
           <SensitivityTable
             baseProbability={results.successProbability}
