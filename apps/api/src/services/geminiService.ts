@@ -124,12 +124,14 @@ Respond in JSON only, no explanation:
     const monthlyIncome = this.formatCurrency(profile.monthlyIncome)
     const liquidAssets = this.formatCurrency(profile.liquidAssets)
 
-    // Find top spending categories
-    const topCategories = Object.entries(profile.spendingByCategory)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([cat, amount]) => `${cat} (${this.formatCurrency(amount / 12)}/month)`)
-      .join(', ')
+    // Find top spending categories (with safety check)
+    const topCategories = profile.spendingByCategory
+      ? Object.entries(profile.spendingByCategory)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([cat, amount]) => `${cat} (${this.formatCurrency(amount / 12)}/month)`)
+          .join(', ')
+      : 'Not available'
 
     const prompt = `You are a friendly, encouraging financial advisor creating a personalized audio briefing. Generate a 3-4 sentence narrative that sounds natural when spoken aloud.
 
@@ -141,7 +143,7 @@ Financial Situation:
 - Monthly Spending: ${monthlySpending}
 - Liquid Assets: ${liquidAssets}
 - Top Spending Categories: ${topCategories}
-- Spending Volatility: ${Math.round(profile.spendingVolatility * 100)}%
+- Spending Volatility: ${profile.spendingVolatility ? Math.round(profile.spendingVolatility * 100) : 0}%
 
 Simulation Results:
 - 10th percentile (worst likely): ${this.formatCurrency(results.percentiles.p10)}
@@ -188,7 +190,7 @@ Financial Profile:
 - Credit Debt: $${profile.creditDebt}
 - Loan Debt: $${profile.loanDebt}
 - Monthly Loan Payments: $${profile.monthlyLoanPayments}
-- Spending by Category: ${JSON.stringify(profile.spendingByCategory)}
+- Spending by Category: ${JSON.stringify(profile.spendingByCategory || {})}
 
 Goal: ${goal.goalType} - $${goal.targetAmount} in ${goal.timelineMonths} months
 
@@ -519,5 +521,96 @@ Your response (remember: 1-2 sentences, conversational):`
   }
 }
 
+// Results conversation class for discussing simulation results
+export class GeminiResultsConversation {
+  private _model: GenerativeModel | null = null
+
+  private get model(): GenerativeModel | null {
+    if (this._model === null && process.env.GEMINI_API_KEY) {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+      this._model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    }
+    return this._model
+  }
+
+  async processUserInput(
+    userMessage: string,
+    conversationHistory: ConversationMessage[],
+    context: {
+      simulationResults: SimulationResults
+      financialProfile: FinancialProfile
+      goal: { targetAmount: number; timelineMonths: number; goalType: string }
+    }
+  ): Promise<{ response: string }> {
+    if (!this.model) {
+      console.warn('Gemini API key not configured for results conversation')
+      return {
+        response: "I'd be happy to discuss your results, but I'm not fully configured right now.",
+      }
+    }
+
+    const { simulationResults, financialProfile, goal } = context
+    const successPercent = Math.round(simulationResults.successProbability * 100)
+
+    const systemPrompt = `You are Drift, a friendly financial advisor chatbot. The user has just completed a Monte Carlo simulation of their financial goal and wants to discuss the results with you.
+
+CONTEXT:
+- Goal: ${goal.goalType} - save $${goal.targetAmount.toLocaleString()} in ${goal.timelineMonths} months (${Math.round(goal.timelineMonths / 12 * 10) / 10} years)
+- Success Probability: ${successPercent}%
+- Expected Outcome (median): $${Math.round(simulationResults.medianOutcome).toLocaleString()}
+- 10th percentile (worst likely): $${Math.round(simulationResults.percentiles.p10).toLocaleString()}
+- 90th percentile (best likely): $${Math.round(simulationResults.percentiles.p90).toLocaleString()}
+- Gap from goal: $${Math.round(simulationResults.medianOutcome - goal.targetAmount).toLocaleString()}
+
+FINANCIAL PROFILE:
+- Monthly Income: $${(financialProfile.monthlyIncome || 0).toLocaleString()}
+- Monthly Spending: $${(financialProfile.monthlySpending || 0).toLocaleString()}
+- Liquid Assets: $${(financialProfile.liquidAssets || 0).toLocaleString()}
+- Credit Debt: $${(financialProfile.creditDebt || 0).toLocaleString()}
+- Loan Debt: $${(financialProfile.loanDebt || 0).toLocaleString()}
+- Top Spending Categories: ${financialProfile.spendingByCategory
+  ? Object.entries(financialProfile.spendingByCategory)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([cat, amount]) => `${cat}: $${Math.round(amount / 12)}/mo`)
+      .join(', ')
+  : 'Not available'}
+
+RULES:
+1. Be conversational, warm, and encouraging - like a smart friend who's good with money
+2. Keep responses SHORT (2-4 sentences max) - this will be spoken aloud
+3. Reference specific numbers from their data to make advice personal
+4. If they ask about improving odds, suggest specific spending cuts or timeline changes
+5. Don't be preachy or condescending
+6. If asked about something outside their financial data, politely redirect to what you know`
+
+    const conversationContext = conversationHistory
+      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n')
+
+    const fullPrompt = `${systemPrompt}
+
+CONVERSATION SO FAR:
+${conversationContext}
+
+User: ${userMessage}
+
+Your response (2-4 sentences, conversational, reference their specific data):`
+
+    try {
+      const result = await this.model.generateContent(fullPrompt)
+      const responseText = result.response.text().trim()
+
+      return { response: responseText }
+    } catch (error) {
+      console.error('Gemini results conversation error:', error)
+      return {
+        response: "I had trouble processing that. Could you rephrase your question about your results?",
+      }
+    }
+  }
+}
+
 export const geminiService = new GeminiService()
 export const geminiGoalConversation = new GeminiGoalConversation()
+export const geminiResultsConversation = new GeminiResultsConversation()

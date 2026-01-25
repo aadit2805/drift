@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { geminiService, geminiGoalConversation } from '../services/geminiService.js'
+import { geminiService, geminiGoalConversation, geminiResultsConversation } from '../services/geminiService.js'
 import { elevenLabsService } from '../services/elevenLabsService.js'
 import type { SimulationResults, FinancialProfile } from '../types/index.js'
 
@@ -225,6 +225,117 @@ router.post('/voice-goal', async (req: Request, res: Response) => {
     console.error('Voice goal error:', error)
     res.status(500).json({
       error: 'Failed to process voice goal',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
+// Voice results conversation - discuss simulation results
+interface VoiceResultsRequestBody {
+  audio?: string
+  text?: string
+  conversationHistory: ConversationMessage[]
+  context: {
+    simulationResults: {
+      successProbability: number
+      medianOutcome: number
+      percentiles: { p10: number; p25: number; p50: number; p75: number; p90: number }
+      mean?: number
+      std?: number
+      worstCase?: number
+      bestCase?: number
+    }
+    financialProfile: {
+      monthlyIncome: number
+      monthlySpending: number
+      liquidAssets: number
+      creditDebt: number
+      loanDebt: number
+      monthlyLoanPayments: number
+      spendingByCategory: Record<string, number>
+      spendingVolatility: number
+    }
+    goal: {
+      targetAmount: number
+      timelineMonths: number
+      goalType: string
+    }
+  }
+}
+
+router.post('/voice-results', async (req: Request, res: Response) => {
+  try {
+    const { audio, text, conversationHistory, context } = req.body as VoiceResultsRequestBody
+
+    if (!audio && !text) {
+      return res.status(400).json({
+        error: 'Either audio or text must be provided',
+      })
+    }
+
+    if (!context || !context.simulationResults || !context.financialProfile || !context.goal) {
+      return res.status(400).json({
+        error: 'Missing required context (simulationResults, financialProfile, goal)',
+      })
+    }
+
+    // Step 1: Get user's message
+    let userMessage: string
+    if (audio) {
+      if (!elevenLabsService.isConfigured()) {
+        return res.status(503).json({
+          error: 'ElevenLabs API not configured for transcription',
+        })
+      }
+      const audioBuffer = Buffer.from(audio, 'base64')
+      console.log(`Voice results - received audio: ${audioBuffer.length} bytes`)
+
+      if (audioBuffer.length < 1000) {
+        return res.status(400).json({
+          error: 'Audio too short - please speak longer',
+        })
+      }
+
+      userMessage = await elevenLabsService.transcribeAudio(audioBuffer)
+      console.log(`Voice results - transcribed: "${userMessage}"`)
+    } else {
+      userMessage = text!
+    }
+
+    // Step 2: Process with Gemini
+    const geminiResponse = await geminiResultsConversation.processUserInput(
+      userMessage,
+      conversationHistory || [],
+      {
+        simulationResults: context.simulationResults as any,
+        financialProfile: context.financialProfile as any,
+        goal: context.goal,
+      }
+    )
+
+    // Step 3: Generate TTS for the response
+    let responseAudio: string | null = null
+    if (elevenLabsService.isConfigured() && geminiResponse.response) {
+      try {
+        const audioBuffer = await elevenLabsService.generateAudio(geminiResponse.response, {
+          voice: 'josh',
+        })
+        responseAudio = audioBuffer.toString('base64')
+      } catch (ttsError) {
+        console.error('TTS generation failed:', ttsError)
+      }
+    }
+
+    res.json({
+      userTranscript: userMessage,
+      assistantResponse: geminiResponse.response,
+      audio: responseAudio,
+      audioAvailable: !!responseAudio,
+    })
+  } catch (error) {
+    console.error('Voice results error:', error)
+    res.status(500).json({
+      error: 'Failed to process voice results',
       message: error instanceof Error ? error.message : 'Unknown error',
     })
   }
