@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Play, Pause, Volume2, VolumeX, Loader2, Headphones, RefreshCw } from 'lucide-react'
+import { Play, Pause, Volume2, VolumeX, Loader2, Headphones } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { generateBriefing, type NarrativeRequest, type BriefingResponse } from '@/lib/api'
@@ -190,9 +190,6 @@ export function AudioNarration({ simulationResults, financialProfile, goal }: Au
         </div>
         <div>
           <h3 className="font-medium">Listen to Your Financial Future</h3>
-          <p className="text-sm text-muted-foreground">
-            AI-powered personalized audio briefing
-          </p>
         </div>
       </div>
 
@@ -249,19 +246,6 @@ export function AudioNarration({ simulationResults, financialProfile, goal }: Au
             </Button>
           )}
 
-          {/* Regenerate Button */}
-          {narrative && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={regenerate}
-              disabled={isLoading}
-              title="Generate new briefing"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-          )}
         </div>
       </div>
 

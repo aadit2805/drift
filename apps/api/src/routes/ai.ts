@@ -176,8 +176,11 @@ router.post('/generate-briefing', async (req: Request, res: Response) => {
       })
     }
 
+    // Select voice based on outcome (or use override if provided)
+    const selectedVoice = voice || elevenLabsService.selectVoiceByOutcome(simulationResults.successProbability)
+
     // Generate audio from the narrative
-    const audio = await elevenLabsService.generateAudio(narrative, { voice })
+    const audio = await elevenLabsService.generateAudio(narrative, { voice: selectedVoice })
 
     // Return narrative and base64-encoded audio
     res.json({
@@ -185,6 +188,7 @@ router.post('/generate-briefing', async (req: Request, res: Response) => {
       audioAvailable: true,
       audio: audio.toString('base64'),
       contentType: 'audio/mpeg',
+      voice: selectedVoice, // Tell frontend which voice was used
     })
   } catch (error) {
     console.error('Briefing generation error:', error)

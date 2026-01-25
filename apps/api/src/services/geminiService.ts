@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai'
 import type { SimulationResults, FinancialProfile } from '../types/index.js'
 
 interface ParsedGoal {
@@ -10,13 +10,18 @@ interface ParsedGoal {
   needsClarification?: boolean
 }
 
-// Initialize Gemini client only if API key is present
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null
-
 export class GeminiService {
-  private model = genAI?.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  private _model: GenerativeModel | null = null
+
+  // Lazy initialization - only create client when first needed
+  private get model(): GenerativeModel | null {
+    if (this._model === null && process.env.GEMINI_API_KEY) {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+      // Use gemini-2.0-flash (works, just has rate limits)
+      this._model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    }
+    return this._model
+  }
 
   async parseGoal(goal: string): Promise<ParsedGoal> {
     if (!this.model) {
@@ -314,15 +319,30 @@ Respond with ONLY a JSON array like: ["recommendation 1", "recommendation 2", "r
     }
   }
 
+  private goalTypeToEnglish(goalType: string): string {
+    const mapping: Record<string, string> = {
+      'major_purchase': 'savings',
+      'retirement': 'retirement',
+      'emergency_fund': 'emergency fund',
+      'debt_payoff': 'debt payoff',
+      'travel': 'vacation',
+      'education': 'education',
+      'investment': 'investment',
+      'custom': 'financial',
+    }
+    return mapping[goalType] || 'financial'
+  }
+
   private mockNarrative(
     results: SimulationResults,
     goal: { targetAmount: number; timelineMonths: number; goalType: string }
   ): string {
     const successPercent = Math.round(results.successProbability * 100)
     const goalFormatted = this.formatCurrency(goal.targetAmount)
+    const goalTypeReadable = this.goalTypeToEnglish(goal.goalType)
 
     if (successPercent >= 75) {
-      return `Great news! With a ${successPercent}% chance of reaching your ${goalFormatted} ${goal.goalType} goal, you're on a solid path. Your consistent saving habits are paying off. Keep up the momentum, and consider increasing your investment contributions when possible to reach your goal even faster.`
+      return `Great news! With a ${successPercent}% chance of reaching your ${goalFormatted} ${goalTypeReadable} goal, you're on a solid path. Your consistent saving habits are paying off. Keep up the momentum, and consider increasing your investment contributions when possible to reach your goal even faster.`
     } else if (successPercent >= 50) {
       return `With a ${successPercent}% chance of reaching your ${goalFormatted} goal, you're making progress but there's room to improve. Your biggest opportunity is reducing discretionary spending - even small cuts can make a significant difference. Consider setting up automatic transfers to savings to stay on track.`
     } else {

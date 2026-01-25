@@ -7,7 +7,10 @@ import llmRouter from './routes/llm.js'
 import whatIfRouter from './routes/whatif.js'
 import aiRouter from './routes/ai.js'
 
+// Load .env from monorepo root (turbo runs from root, so cwd is root)
 dotenv.config()
+// Also try loading from apps/api in case running directly
+dotenv.config({ path: '../../.env' })
 
 const app = express()
 const PORT = process.env.PORT || 3001
