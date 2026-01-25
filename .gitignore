@@ -55,3 +55,6 @@ coverage/
 PROJECT_STRUCTURE.md
 
 .claude/
+.agents/
+.codex/
+.cursor/
