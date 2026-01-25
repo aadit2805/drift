@@ -9,7 +9,7 @@ export default function Home() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-primary)]">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+          <div className="w-6 h-6 bg-[var(--accent)] rounded" />
           <span className="font-medium">FutureCast</span>
         </div>
         <div className="flex items-center gap-6">
@@ -29,7 +29,8 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="px-6 py-24 max-w-3xl mx-auto">
+      <section className="px-6 py-24 max-w-3xl mx-auto relative">
+        <div className="hero-glow" />
         <p className="text-sm text-[var(--text-tertiary)] mb-4">Monte Carlo Simulation</p>
         <h1 className="text-4xl font-medium tracking-tight mb-6">
           See 10,000 versions of your financial future
@@ -167,7 +168,7 @@ export default function Home() {
       <footer className="px-6 py-6 border-t border-[var(--border-primary)]">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[var(--text-tertiary)] rounded" />
+            <div className="w-4 h-4 bg-[var(--accent)] rounded opacity-60" />
             <span className="text-sm text-[var(--text-tertiary)]">FutureCast</span>
           </div>
           <p className="text-sm text-[var(--text-tertiary)]">

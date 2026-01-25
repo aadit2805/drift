@@ -135,7 +135,7 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+              <div className="w-6 h-6 bg-[var(--accent)] rounded" />
               <span className="font-medium">FutureCast</span>
             </Link>
             <span className="text-[var(--text-tertiary)]">/</span>
@@ -263,7 +263,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg">
                 <div className="flex items-center gap-3">
-                  <ShoppingBag className="w-5 h-5 text-purple-500" />
+                  <ShoppingBag className="w-5 h-5 text-[var(--accent)]" />
                   <div>
                     <p className="font-medium text-sm">Variable Spending</p>
                     <p className="text-xs text-[var(--text-tertiary)]">Groceries, dining, shopping</p>
@@ -325,7 +325,7 @@ export default function DashboardPage() {
                   className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <CreditCard className="w-5 h-5 text-purple-500" />
+                    <CreditCard className="w-5 h-5 text-[var(--error)]" />
                     <div>
                       <p className="font-medium text-sm">{account.nickname}</p>
                       <p className="text-xs text-[var(--text-tertiary)]">Credit Card</p>
