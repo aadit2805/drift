@@ -408,9 +408,21 @@ a {
 .stats-percentage {
   font-size: 32px;
   font-weight: 600;
-  color: var(--success);
   line-height: 1;
   font-feature-settings: "tnum" 1;
+}
+
+/* Success rate color ranges: 0-33% red, 34-67% yellow, 68%+ green */
+.stats-percentage.stats-low {
+  color: var(--error);
+}
+
+.stats-percentage.stats-medium {
+  color: var(--warning);
+}
+
+.stats-percentage.stats-high {
+  color: var(--success);
 }
 
 .stats-percentage.stats-pending {

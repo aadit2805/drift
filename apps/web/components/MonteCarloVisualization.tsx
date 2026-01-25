@@ -355,7 +355,10 @@ export function MonteCarloVisualization({
           <div className="stats-display">
             {hasBackendStats ? (
               <>
-                <span className="stats-percentage">
+                <span className={`stats-percentage ${
+                  (backendSuccessRate * 100) >= 68 ? 'stats-high' :
+                  (backendSuccessRate * 100) >= 34 ? 'stats-medium' : 'stats-low'
+                }`}>
                   {Math.round(backendSuccessRate * 100)}%
                 </span>
                 <span className="stats-expected">
