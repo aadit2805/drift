@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { Check, AlertCircle } from 'lucide-react'
 import { getFinancialProfile, parseGoal, runSimulation, runSensitivityAnalysis } from '@/lib/api'
 import type { SimulationRequest, SimulationResults, SensitivityAnalysis, FinancialProfile, ParsedGoal } from '@/types'
+import { MonteCarloVisualization, VisualizationConfig } from '@/components/MonteCarloVisualization'
+
+type Phase = 'idle' | 'loading' | 'parsing' | 'simulating' | 'sensitivity' | 'complete'
 
 interface StepStatus {
   status: 'pending' | 'active' | 'done' | 'error'
@@ -15,6 +18,7 @@ interface StepStatus {
 export default function SimulationPage() {
   const router = useRouter()
   const [progress, setProgress] = useState(0)
+  const [phase, setPhase] = useState<Phase>('idle')
   const [stepStatuses, setStepStatuses] = useState<StepStatus[]>([
     { status: 'pending' },
     { status: 'pending' },
@@ -23,8 +27,19 @@ export default function SimulationPage() {
   ])
   const [error, setError] = useState<string | null>(null)
   const [simCount, setSimCount] = useState(0)
+  const [backendStats, setBackendStats] = useState<{
+    successRate: number | undefined
+    expectedValue: number | undefined
+  }>({ successRate: undefined, expectedValue: undefined })
   const hasStarted = useRef(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const vizStartTimeRef = useRef<number | null>(null)
+
+  // Visualization config - will be populated when we have financial data
+  const [vizConfig, setVizConfig] = useState<VisualizationConfig | null>(null)
+
+  // Minimum visualization duration (10s for particle animation)
+  const MIN_VIZ_DURATION = 10000
 
   // Auth check
   useEffect(() => {
@@ -72,6 +87,7 @@ export default function SimulationPage() {
 
         const userInputs = JSON.parse(storedInputs)
         setProgress(5)
+        setPhase('loading')
 
         // Step 1: Fetch financial profile from Nessie
         updateStep(0, 'active')
@@ -99,6 +115,7 @@ export default function SimulationPage() {
         }
 
         // Step 2: Parse the goal using LLM
+        setPhase('parsing')
         updateStep(1, 'active')
         let parsedGoal: ParsedGoal
         try {
@@ -112,8 +129,27 @@ export default function SimulationPage() {
           return
         }
 
+        // Set up visualization config now that we have financial data and goal
+        const config: VisualizationConfig = {
+          nPaths: 100,
+          months: parsedGoal.timelineMonths,
+          startingBalance: financialProfile.liquidAssets - financialProfile.creditDebt,
+          monthlyIncome: financialProfile.monthlyIncome,
+          monthlySpending: financialProfile.monthlySpending + financialProfile.monthlyBills,
+          spendingVolatility: financialProfile.spendingVolatility || 0.15,
+          goalAmount: parsedGoal.targetAmount,
+          riskTolerance: userInputs.riskTolerance || 'medium',
+        }
+        setVizConfig(config)
+
         // Step 3: Run Monte Carlo simulation
+        setPhase('simulating')
         updateStep(2, 'active')
+
+        // Track when visualization starts for minimum duration
+        vizStartTimeRef.current = performance.now()
+
+        // Simulation counter that syncs with visualization
         const simInterval = setInterval(() => {
           setSimCount(prev => Math.min(prev + Math.floor(Math.random() * 400) + 200, 10000))
         }, 100)
@@ -121,7 +157,7 @@ export default function SimulationPage() {
         const simulationRequest: SimulationRequest = {
           financialProfile,
           userInputs: {
-            monthlyIncome: financialProfile.monthlyIncome || 6400, // From API deposits
+            monthlyIncome: financialProfile.monthlyIncome || 6400,
             age: parseInt(userInputs.age),
             riskTolerance: userInputs.riskTolerance,
           },
@@ -140,6 +176,12 @@ export default function SimulationPage() {
           simulationResults = await runSimulation(simulationRequest)
           clearInterval(simInterval)
           setSimCount(10000)
+          // Update backend stats for visualization
+          // successProbability is already a decimal (0-1), not a percentage
+          setBackendStats({
+            successRate: simulationResults.successProbability,
+            expectedValue: simulationResults.medianOutcome,
+          })
           updateStep(2, 'done')
           setProgress(75)
         } catch (err) {
@@ -151,6 +193,7 @@ export default function SimulationPage() {
         }
 
         // Step 4: Run sensitivity analysis
+        setPhase('sensitivity')
         updateStep(3, 'active')
         let sensitivityResults: SensitivityAnalysis | null = null
         try {
@@ -159,10 +202,11 @@ export default function SimulationPage() {
           setProgress(100)
         } catch (err) {
           console.error('Sensitivity analysis failed:', err)
-          // Continue without sensitivity - not critical
           updateStep(3, 'done', 'Skipped')
           setProgress(100)
         }
+
+        setPhase('complete')
 
         // Store results in localStorage
         const resultsData = {
@@ -185,8 +229,12 @@ export default function SimulationPage() {
         }
         localStorage.setItem('simulationResults', JSON.stringify(resultsData))
 
-        // Navigate to results after a brief pause
-        setTimeout(() => router.push('/results'), 500)
+        // Navigate to results after particle animation completes
+        // Ensure minimum visualization duration for the full particle animation
+        const vizElapsed = vizStartTimeRef.current ? performance.now() - vizStartTimeRef.current : 0
+        const remainingTime = Math.max(0, MIN_VIZ_DURATION - vizElapsed) + 1500
+
+        setTimeout(() => router.push('/results'), remainingTime)
       } catch (err) {
         console.error('Simulation flow error:', err)
         setError('An unexpected error occurred. Please try again.')
@@ -238,81 +286,91 @@ export default function SimulationPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8">
-      <div className="w-full max-w-lg">
-        <Link href="/" className="flex items-center gap-2 mb-12 justify-center">
-          <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
-          <span className="font-medium">FutureCast</span>
-        </Link>
-
-        <div className="card p-6">
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-[var(--text-secondary)]">Processing</span>
-              <span className="text-sm font-mono tabular-nums">{Math.round(progress)}%</span>
-            </div>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {steps.map((step, i) => {
-              const stepStatus = stepStatuses[i]
-              return (
-                <div key={i} className="flex items-center gap-3 py-2">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                    stepStatus.status === 'done'
-                      ? 'bg-[var(--success)] text-[var(--bg-primary)]'
-                      : stepStatus.status === 'active'
-                      ? 'border-2 border-[var(--accent)]'
-                      : stepStatus.status === 'error'
-                      ? 'bg-[var(--error)] text-[var(--bg-primary)]'
-                      : 'bg-[var(--bg-tertiary)]'
-                  }`}>
-                    {stepStatus.status === 'done' && <Check className="w-3 h-3" />}
-                    {stepStatus.status === 'active' && <div className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />}
-                    {stepStatus.status === 'error' && <span>!</span>}
-                  </div>
-                  <div className="flex-1">
-                    <span className={stepStatus.status === 'pending' ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}>
-                      {step.label}
-                    </span>
-                    {stepStatus.status === 'active' && step.label.includes('Monte Carlo') && (
-                      <span className="ml-2 text-sm font-mono text-[var(--accent)]">
-                        {simCount.toLocaleString()}/10,000
-                      </span>
-                    )}
-                    {stepStatus.message && (
-                      <span className="ml-2 text-xs text-[var(--text-tertiary)]">({stepStatus.message})</span>
-                    )}
-                  </div>
-                  <span className="text-xs text-[var(--text-tertiary)]">{step.desc}</span>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="h-px bg-[var(--border-primary)] my-6" />
-
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-xl font-medium tabular-nums">{simCount.toLocaleString()}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">scenarios</p>
-            </div>
-            <div>
-              <p className="text-xl font-medium tabular-nums">10,000</p>
-              <p className="text-xs text-[var(--text-tertiary)]">total</p>
-            </div>
-            <div>
-              <p className="text-xl font-medium tabular-nums">{Math.round(progress)}%</p>
-              <p className="text-xs text-[var(--text-tertiary)]">complete</p>
-            </div>
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="w-full max-w-4xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-[var(--text-primary)] rounded" />
+            <span className="font-medium">FutureCast</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--text-secondary)]">Processing</span>
+            <span className="text-sm font-mono tabular-nums text-[var(--text-primary)]">{Math.round(progress)}%</span>
           </div>
         </div>
 
-        <p className="text-center text-xs text-[var(--text-tertiary)] mt-6">
-          Running Monte Carlo simulation with real financial data
+        {/* Main Progress Bar */}
+        <div className="progress-track mb-8" style={{ height: '3px' }}>
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+
+        {/* Monte Carlo Visualization (Hero) */}
+        {vizConfig && (
+          <MonteCarloVisualization
+            config={vizConfig}
+            phase={phase}
+            backendProgress={progress}
+            backendSimCount={simCount}
+            backendSuccessRate={backendStats.successRate}
+            backendExpectedValue={backendStats.expectedValue}
+            totalSimulations={10000}
+          />
+        )}
+
+        {/* Placeholder while loading config */}
+        {!vizConfig && (
+          <div className="card p-8 flex items-center justify-center" style={{ minHeight: '400px' }}>
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-[var(--text-tertiary)] border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-[var(--text-secondary)]">Loading financial data...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Step Indicators (Secondary) */}
+        <div className="step-indicators mt-6">
+          {steps.map((step, i) => {
+            const stepStatus = stepStatuses[i]
+            return (
+              <div
+                key={i}
+                className={`step-indicator ${
+                  stepStatus.status === 'active' ? 'active' :
+                  stepStatus.status === 'done' ? 'done' : ''
+                }`}
+              >
+                <div className="step-icon">
+                  {stepStatus.status === 'done' && (
+                    <Check className="w-4 h-4 text-[var(--success)]" />
+                  )}
+                  {stepStatus.status === 'active' && (
+                    <div className="step-icon-active" />
+                  )}
+                  {stepStatus.status === 'pending' && (
+                    <div className="step-icon-pending" />
+                  )}
+                  {stepStatus.status === 'error' && (
+                    <AlertCircle className="w-4 h-4 text-[var(--error)]" />
+                  )}
+                </div>
+                <span className="flex-1">{step.label}</span>
+                {stepStatus.status === 'active' && step.label.includes('Monte Carlo') && (
+                  <span className="step-counter text-[var(--accent)]">
+                    {simCount.toLocaleString()}/10,000
+                  </span>
+                )}
+                {stepStatus.message && (
+                  <span className="text-xs text-[var(--text-tertiary)]">({stepStatus.message})</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-[var(--text-tertiary)] mt-8">
+          Monte Carlo simulation computing 10,000 scenarios with your financial data
         </p>
       </div>
     </div>
