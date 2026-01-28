@@ -179,7 +179,6 @@ router.post('/voice-goal', async (req: Request, res: Response) => {
         })
       }
       const audioBuffer = Buffer.from(audio, 'base64')
-      console.log(`Received audio: ${audioBuffer.length} bytes`)
 
       if (audioBuffer.length < 1000) {
         return res.status(400).json({
@@ -188,7 +187,6 @@ router.post('/voice-goal', async (req: Request, res: Response) => {
       }
 
       userMessage = await elevenLabsService.transcribeAudio(audioBuffer)
-      console.log(`Transcribed: "${userMessage}"`)
     } else {
       userMessage = text!
     }
@@ -288,7 +286,6 @@ router.post('/voice-results', async (req: Request, res: Response) => {
         })
       }
       const audioBuffer = Buffer.from(audio, 'base64')
-      console.log(`Voice results - received audio: ${audioBuffer.length} bytes`)
 
       if (audioBuffer.length < 1000) {
         return res.status(400).json({
@@ -297,7 +294,6 @@ router.post('/voice-results', async (req: Request, res: Response) => {
       }
 
       userMessage = await elevenLabsService.transcribeAudio(audioBuffer)
-      console.log(`Voice results - transcribed: "${userMessage}"`)
     } else {
       userMessage = text!
     }

@@ -5,13 +5,48 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
+export function formatCurrency(value: number): string {
+  const num = Number(value) || 0
+  const rounded = Math.round(num)
+  const abs = Math.abs(rounded)
+
+  if (abs >= 1000000) {
+    const millions = abs / 1000000
+    const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
+    return rounded < 0 ? `-$${formatted}M` : `$${formatted}M`
+  }
+  if (abs >= 10000) {
+    const thousands = abs / 1000
+    const formatted = thousands >= 100 ? Math.round(thousands) : thousands.toFixed(1).replace(/\.0$/, '')
+    return rounded < 0 ? `-$${formatted}K` : `$${formatted}K`
+  }
+
+  if (rounded < 0) {
+    return `-$${abs.toLocaleString()}`
+  }
+  return `$${rounded.toLocaleString()}`
+}
+
+export function formatCurrencyWithSign(value: number): string {
+  const num = Number(value) || 0
+  const rounded = Math.round(num)
+  const abs = Math.abs(rounded)
+
+  if (abs >= 1000000) {
+    const millions = abs / 1000000
+    const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
+    return rounded < 0 ? `-$${formatted}M` : `+$${formatted}M`
+  }
+  if (abs >= 10000) {
+    const thousands = abs / 1000
+    const formatted = thousands >= 100 ? Math.round(thousands) : thousands.toFixed(1).replace(/\.0$/, '')
+    return rounded < 0 ? `-$${formatted}K` : `+$${formatted}K`
+  }
+
+  if (rounded < 0) {
+    return `-$${abs.toLocaleString()}`
+  }
+  return `+$${rounded.toLocaleString()}`
 }
 
 export function formatPercentage(value: number, decimals = 0): string {

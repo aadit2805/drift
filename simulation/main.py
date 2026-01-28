@@ -8,7 +8,6 @@ This module provides CLI and programmatic access to the Monte Carlo simulation e
 import argparse
 import json
 import sys
-from typing import Optional
 
 from models import SimulationRequest, SimulationParams, FinancialProfile, UserInputs, Goal
 from monte_carlo import run_monte_carlo, benchmark_simulation

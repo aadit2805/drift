@@ -156,16 +156,9 @@ export class ElevenLabsService {
         model_id: 'scribe_v1',
       })
 
-      console.log('ElevenLabs STT result:', JSON.stringify(result, null, 2))
-
       // Extract the transcript text from the response
       if (result && result.text) {
         return result.text
-      }
-
-      // If no text but we got a result, log it for debugging
-      if (result) {
-        console.log('STT result has no text property:', Object.keys(result))
       }
 
       throw new Error('No transcript returned')

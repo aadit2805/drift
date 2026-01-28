@@ -53,8 +53,6 @@ router.get('/financial-profile', async (req, res) => {
         spendingByCategory[category] = (spendingByCategory[category] || 0) + purchase.amount
       }
 
-      console.log(`Financial profile: ${purchases.length} purchases, ${merchants.length} merchants, categories:`, Object.keys(spendingByCategory))
-
       // Get deposits (income)
       const deposits = await nessieService.getAccountDeposits(checkingAccount._id)
       // Look for salary/direct deposit entries

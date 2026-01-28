@@ -5,7 +5,6 @@ Transforms Nessie API data into simulation-ready financial profiles.
 """
 
 from typing import List, Dict, Any
-from datetime import datetime, timedelta
 import numpy as np
 from models import FinancialProfile
 
@@ -136,35 +135,3 @@ def calculate_spending_volatility(purchases: List[Dict[str, Any]]) -> float:
         cv = 0.15
 
     return float(cv)
-
-
-def estimate_income_from_deposits(deposits: List[Dict[str, Any]]) -> float:
-    """
-    Attempt to estimate monthly income from deposit patterns.
-
-    Note: Nessie deposits don't always have amounts, so this is a best-effort estimate.
-    """
-    if not deposits:
-        return 0
-
-    # Group deposits by month
-    monthly_deposits: Dict[str, float] = {}
-
-    for deposit in deposits:
-        date_str = deposit.get('transaction_date', '')
-        amount = deposit.get('amount', 0)
-
-        if not date_str or not amount:
-            continue
-
-        month_key = date_str[:7]
-
-        if month_key not in monthly_deposits:
-            monthly_deposits[month_key] = 0
-        monthly_deposits[month_key] += amount
-
-    if not monthly_deposits:
-        return 0
-
-    # Return average monthly deposits
-    return float(np.mean(list(monthly_deposits.values())))

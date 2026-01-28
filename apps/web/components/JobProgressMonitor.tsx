@@ -62,8 +62,6 @@ function StatusBadge({ status }: { status: Job['status'] }) {
         return { label: 'COMPLETE', color: 'text-[var(--success)]', bg: 'bg-[var(--success)]/10' }
       case 'failed':
         return { label: 'FAILED', color: 'text-[var(--error)]', bg: 'bg-[var(--error)]/10' }
-      default:
-        return { label: status.toUpperCase(), color: 'text-muted-foreground', bg: 'bg-muted' }
     }
   }
 

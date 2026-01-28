@@ -428,8 +428,6 @@ export class GeminiGoalConversation {
       }
     }
 
-    console.log('Processing goal conversation:', { userMessage, historyLength: conversationHistory.length })
-
     const systemPrompt = `You are Drift, a friendly financial goal assistant. Your job is to help users define their financial goals through natural conversation.
 
 RULES:
@@ -481,8 +479,6 @@ Your response (remember: 1-2 sentences, conversational):`
     try {
       const result = await this.model.generateContent(fullPrompt)
       const responseText = result.response.text().trim()
-
-      console.log('Gemini goal response:', responseText.substring(0, 200))
 
       // Check if goal is complete
       const isComplete = responseText.includes('[GOAL_COMPLETE]')

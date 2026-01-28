@@ -11,6 +11,7 @@ import { VoiceResultsChat } from '@/components/VoiceResultsChat'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { formatCurrency, formatCurrencyWithSign } from '@/lib/utils'
 import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions, UserInputs, Assumptions } from '@/types'
 
 const HARDCODED_ASSUMPTIONS: Assumptions = {
@@ -26,50 +27,6 @@ const HARDCODED_ASSUMPTIONS: Assumptions = {
   emergencyAmountRange: '$500 - $2,000',
   incomeVolatility: 0.05,
   expenseVolatility: 0.12,
-}
-
-function formatCurrency(value: number): string {
-  const num = Number(value) || 0
-  const rounded = Math.round(num)
-  const abs = Math.abs(rounded)
-
-  if (abs >= 1000000) {
-    const millions = abs / 1000000
-    const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
-    return rounded < 0 ? `-$${formatted}M` : `$${formatted}M`
-  }
-  if (abs >= 10000) {
-    const thousands = abs / 1000
-    const formatted = thousands >= 100 ? Math.round(thousands) : thousands.toFixed(1).replace(/\.0$/, '')
-    return rounded < 0 ? `-$${formatted}K` : `$${formatted}K`
-  }
-
-  if (rounded < 0) {
-    return `-$${abs.toLocaleString()}`
-  }
-  return `$${rounded.toLocaleString()}`
-}
-
-function formatCurrencyWithSign(value: number): string {
-  const num = Number(value) || 0
-  const rounded = Math.round(num)
-  const abs = Math.abs(rounded)
-
-  if (abs >= 1000000) {
-    const millions = abs / 1000000
-    const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
-    return rounded < 0 ? `-$${formatted}M` : `+$${formatted}M`
-  }
-  if (abs >= 10000) {
-    const thousands = abs / 1000
-    const formatted = thousands >= 100 ? Math.round(thousands) : thousands.toFixed(1).replace(/\.0$/, '')
-    return rounded < 0 ? `-$${formatted}K` : `+$${formatted}K`
-  }
-
-  if (rounded < 0) {
-    return `-$${abs.toLocaleString()}`
-  }
-  return `+$${rounded.toLocaleString()}`
 }
 
 function formatPercent(value: number, digits = 0): string {

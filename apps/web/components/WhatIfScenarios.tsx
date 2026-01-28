@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 import type { FinancialProfile, UserInputs } from '@/types'
 
 interface WhatIfScenario {
@@ -19,30 +20,6 @@ interface WhatIfScenariosProps {
   timelineMonths: number
   financialProfile: FinancialProfile
   userInputs: UserInputs
-}
-
-function formatCurrency(value: number): string {
-  const num = Number(value) || 0
-  const rounded = Math.round(num)
-  const abs = Math.abs(rounded)
-
-  if (abs >= 1000000) {
-    const millions = abs / 1000000
-    const formatted = millions >= 10 ? Math.round(millions) : millions.toFixed(1).replace(/\.0$/, '')
-    return rounded < 0 ? `-$${formatted}M` : `$${formatted}M`
-  }
-  if (abs >= 10000) {
-    const thousands = abs / 1000
-    const formatted = thousands >= 100 ? Math.round(thousands) : thousands.toFixed(1).replace(/\.0$/, '')
-    return rounded < 0 ? `-$${formatted}K` : `+$${formatted}K`
-  }
-
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.round(num))
 }
 
 export function WhatIfScenarios({
@@ -67,8 +44,6 @@ export function WhatIfScenarios({
           setScenarios([])
           setIsLoading(false)
           return
-          console.log('WhatIfScenarios: Fetching with shortfall:', shortfall, { goalAmount, medianOutcome, userInputs })
-
         }
 
         const response = await fetch('http://localhost:3001/api/whatif/scenarios', {
@@ -95,7 +70,6 @@ export function WhatIfScenarios({
         }
 
         const data = await response.json()
-          console.log('WhatIfScenarios: Received data:', data)
         setScenarios(data)
       } catch (err) {
         console.error('Error fetching what-if scenarios:', err)
