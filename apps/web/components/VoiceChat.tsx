@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { sendVoiceResults, type ConversationMessage, type VoiceResultsContext } from '@/lib/api'
 
-interface VoiceResultsChatProps {
+interface VoiceChatProps {
   context: VoiceResultsContext
 }
 
@@ -15,7 +15,7 @@ interface DisplayMessage extends ConversationMessage {
   isPlaying?: boolean
 }
 
-export function VoiceResultsChat({ context }: VoiceResultsChatProps) {
+export function VoiceChat({ context }: VoiceChatProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {

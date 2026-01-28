@@ -3,7 +3,7 @@
 import { Wallet, CreditCard, TrendingDown, PiggyBank } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 
-interface FinancialSummaryProps {
+interface ProfileProps {
   data: {
     liquidAssets: number
     creditDebt: number
@@ -13,7 +13,7 @@ interface FinancialSummaryProps {
   }
 }
 
-export function FinancialSummary({ data }: FinancialSummaryProps) {
+export function Profile({ data }: ProfileProps) {
   const items = [
     {
       label: 'Liquid Assets',

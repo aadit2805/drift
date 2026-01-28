@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react'
-import { ResultsChart } from '@/components/ResultsChart'
-import { SensitivityTable } from '@/components/SensitivityTable'
-import { AudioNarration } from '@/components/AudioNarration'
-import { VoiceResultsChat } from '@/components/VoiceResultsChat'
+import { Chart } from '@/components/Chart'
+import { Sensitivity } from '@/components/Sensitivity'
+import { Narration } from '@/components/Narration'
+import { VoiceChat } from '@/components/VoiceChat'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -125,7 +125,7 @@ export default function ResultsPage() {
             </div>
             <p className="text-muted-foreground mb-6">{error}</p>
             <Button asChild className="w-full">
-              <Link href="/onboarding">Start a simulation</Link>
+              <Link href="/goal">Start a simulation</Link>
             </Button>
           </Card>
         </div>
@@ -263,7 +263,7 @@ export default function ResultsPage() {
           <span className="text-sm text-muted-foreground">Results</span>
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/onboarding">
+          <Link href="/goal">
             <ArrowLeft className="w-4 h-4" />
             New simulation
           </Link>
@@ -352,7 +352,7 @@ export default function ResultsPage() {
             </tbody>
           </table>
 
-          <ResultsChart
+          <Chart
             percentiles={results.percentiles}
             goalAmount={results.goalAmount}
             timelineMonths={results.timelineMonths}
@@ -362,7 +362,7 @@ export default function ResultsPage() {
         {/* Audio Narration - Financial Advisor */}
         {financialProfile && parsedGoal && (
           <div className="mb-8">
-            <AudioNarration
+            <Narration
               simulationResults={{
                 successProbability: results.successProbability,
                 medianOutcome: results.medianOutcome,
@@ -388,7 +388,7 @@ export default function ResultsPage() {
             <h2 className="font-medium">What-if Analysis</h2>
             <p className="text-sm text-muted-foreground">Changes to help achieve your goal</p>
           </div>
-          <SensitivityTable
+          <Sensitivity
             baseProbability={results.successProbability}
             sensitivityData={sensitivity}
             recommendations={recommendations}
@@ -479,7 +479,7 @@ export default function ResultsPage() {
 
       {/* Voice Chat with Financial Advisor */}
       {financialProfile && parsedGoal && (
-        <VoiceResultsChat
+        <VoiceChat
           context={{
             simulationResults: {
               successProbability: results.successProbability,

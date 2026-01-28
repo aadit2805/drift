@@ -18,7 +18,7 @@ from monte_carlo import run_monte_carlo
 
 def test_assumptions():
     """Test that assumptions are included in simulation results."""
-    
+
     request = SimulationRequest(
         financial_profile=FinancialProfile(
             liquid_assets=15000,
@@ -39,27 +39,27 @@ def test_assumptions():
         ),
         simulation_params=SimulationParams(n_simulations=1000)
     )
-    
+
     # Apply risk tolerance
     request.simulation_params = SimulationParams.from_risk_tolerance("medium", request.simulation_params)
-    
+
     # Run simulation
     results = run_monte_carlo(request)
-    
+
     print("=" * 60)
     print("Simulation Results with Assumptions")
     print("=" * 60)
-    
+
     print(f"\nSuccess Probability: {results.success_probability:.1%}")
     print(f"Median Outcome: ${results.median_outcome:,.0f}")
-    
+
     if results.assumptions:
         print("\n" + "=" * 60)
         print("Assumptions Included:")
         print("=" * 60)
-        
+
         assumptions_dict = results.assumptions.model_dump()
-        
+
         for key, value in assumptions_dict.items():
             # Format percentage values
             if isinstance(value, float) and value < 1:
@@ -69,9 +69,9 @@ def test_assumptions():
                     print(f"  {key}: {value}")
             else:
                 print(f"  {key}: {value}")
-        
+
         print("\n✓ Assumptions are properly included in results!")
-        
+
         # Verify all required fields
         required_fields = [
             'annual_return_mean',
@@ -87,7 +87,7 @@ def test_assumptions():
             'income_volatility',
             'expense_volatility',
         ]
-        
+
         missing = [f for f in required_fields if f not in assumptions_dict]
         if missing:
             print(f"\n✗ Missing fields: {missing}")

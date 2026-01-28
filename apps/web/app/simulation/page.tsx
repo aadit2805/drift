@@ -18,7 +18,7 @@ import type {
   Job,
   ClusterStatus,
 } from '@/types'
-import { MonteCarloVisualization, VisualizationConfig } from '@/components/MonteCarloVisualization'
+import { MonteCarloViz, VisualizationConfig } from '@/components/MonteCarloViz'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
@@ -232,7 +232,7 @@ export default function SimulationPage() {
         const storedInputs = localStorage.getItem('userInputs')
         const customerId = localStorage.getItem('customerId')
         if (!storedInputs) {
-          setError('No user inputs found. Please complete onboarding first.')
+          setError('No user inputs found. Please set a goal first.')
           return
         }
         if (!customerId) {
@@ -414,7 +414,7 @@ export default function SimulationPage() {
             <p className="text-muted-foreground mb-6">{error}</p>
             <div className="flex gap-3">
               <Button variant="outline" asChild className="flex-1">
-                <Link href="/onboarding">Start over</Link>
+                <Link href="/goal">Start over</Link>
               </Button>
               <Button onClick={() => window.location.reload()} className="flex-1">
                 Retry
@@ -465,7 +465,7 @@ export default function SimulationPage() {
           {/* Left: Monte Carlo Visualization */}
           <div>
             {vizConfig && (
-              <MonteCarloVisualization
+              <MonteCarloViz
                 config={vizConfig}
                 phase={phase === 'running' ? 'simulating' : phase === 'complete' ? 'complete' : 'loading'}
                 backendProgress={progress}

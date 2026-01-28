@@ -5,12 +5,12 @@ import { Send, Loader2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 
-interface GoalInputProps {
+interface GoalProps {
   onSubmit: (goal: string) => void
   isLoading?: boolean
 }
 
-export function GoalInput({ onSubmit, isLoading = false }: GoalInputProps) {
+export function Goal({ onSubmit, isLoading = false }: GoalProps) {
   const [goal, setGoal] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {

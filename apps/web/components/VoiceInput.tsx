@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { sendVoiceGoal, type ConversationMessage, type VoiceGoalResponse } from '@/lib/api'
 
-interface VoiceGoalInputProps {
+interface VoiceInputProps {
   onGoalComplete: (goal: { targetAmount: number; timelineMonths: number; goalType: string }) => void
 }
 
@@ -15,7 +15,7 @@ interface DisplayMessage extends ConversationMessage {
   isPlaying?: boolean
 }
 
-export function VoiceGoalInput({ onGoalComplete }: VoiceGoalInputProps) {
+export function VoiceInput({ onGoalComplete }: VoiceInputProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {
       id: 'initial',

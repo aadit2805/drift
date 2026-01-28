@@ -30,7 +30,7 @@ interface Particle {
   isSuccess: boolean  // Determined by backend success rate, not client simulation
 }
 
-interface MonteCarloVisualizationProps {
+interface MonteCarloVizProps {
   config: VisualizationConfig
   phase: 'idle' | 'loading' | 'parsing' | 'simulating' | 'sensitivity' | 'complete'
   backendProgress?: number
@@ -63,7 +63,7 @@ const ANIMATION_DURATION = 10000 // 10 seconds total
 // Main Component
 // ============================================
 
-export function MonteCarloVisualization({
+export function MonteCarloViz({
   config,
   phase,
   backendSimCount = 0,
@@ -71,7 +71,7 @@ export function MonteCarloVisualization({
   backendExpectedValue,
   totalSimulations = 100000,
   onVisualizationComplete,
-}: MonteCarloVisualizationProps) {
+}: MonteCarloVizProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
@@ -388,4 +388,4 @@ export function MonteCarloVisualization({
   )
 }
 
-export default MonteCarloVisualization
+export default MonteCarloViz

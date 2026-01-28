@@ -11,7 +11,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 
-interface ResultsChartProps {
+interface ChartProps {
   percentiles: {
     p10: number
     p25: number
@@ -23,7 +23,7 @@ interface ResultsChartProps {
   timelineMonths: number
 }
 
-export function ResultsChart({ percentiles, goalAmount, timelineMonths }: ResultsChartProps) {
+export function Chart({ percentiles, goalAmount, timelineMonths }: ChartProps) {
   const data = Array.from({ length: timelineMonths + 1 }, (_, month) => {
     const progress = month / timelineMonths
     const growthFactor = Math.pow(progress, 0.8)

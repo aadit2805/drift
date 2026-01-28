@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Fetch real data from Nessie API and cache it for testing.
 
@@ -17,23 +18,23 @@ NESSIE_BASE_URL = os.getenv('NESSIE_BASE_URL', 'http://api.nessieisreal.com')
 NESSIE_API_KEY = os.getenv('NESSIE_API_KEY', '4389318c54ddf318af62eda4ceed5f66')
 
 # Cache file location
-CACHE_DIR = Path(__file__).parent / 'test_data'
+CACHE_DIR = Path(__file__).parent.parent / 'simulation' / 'tests' / 'test_data'
 CACHE_FILE = CACHE_DIR / 'nessie_cache.json'
 
 
 def fetch_nessie_data() -> Dict[str, Any]:
     """
     Fetch real data from Nessie API.
-    
+
     Returns:
         Dictionary containing accounts, purchases, deposits, bills, and loans
     """
     print("Fetching data from Nessie API...")
-    
+
     # Setup API client
     session = requests.Session()
     session.params = {'key': NESSIE_API_KEY}
-    
+
     data = {
         'fetched_at': datetime.now().isoformat(),
         'accounts': [],
@@ -42,7 +43,7 @@ def fetch_nessie_data() -> Dict[str, Any]:
         'bills_by_account': {},
         'loans_by_account': {}
     }
-    
+
     try:
         # Fetch all accounts
         print("  Fetching accounts...")
@@ -51,13 +52,13 @@ def fetch_nessie_data() -> Dict[str, Any]:
         accounts = response.json()
         data['accounts'] = accounts
         print(f"    ✓ Found {len(accounts)} accounts")
-        
+
         # For each account, fetch transactions
         for account in accounts[:5]:  # Limit to first 5 accounts for testing
             account_id = account['_id']
             account_type = account.get('type', 'Unknown')
             print(f"\n  Processing account {account_id} ({account_type})...")
-            
+
             # Fetch purchases
             try:
                 response = session.get(f'{NESSIE_BASE_URL}/accounts/{account_id}/purchases')
@@ -68,7 +69,7 @@ def fetch_nessie_data() -> Dict[str, Any]:
             except Exception as e:
                 print(f"    ✗ Purchases failed: {e}")
                 data['purchases_by_account'][account_id] = []
-            
+
             # Fetch deposits
             try:
                 response = session.get(f'{NESSIE_BASE_URL}/accounts/{account_id}/deposits')
@@ -79,7 +80,7 @@ def fetch_nessie_data() -> Dict[str, Any]:
             except Exception as e:
                 print(f"    ✗ Deposits failed: {e}")
                 data['deposits_by_account'][account_id] = []
-            
+
             # Fetch bills
             try:
                 response = session.get(f'{NESSIE_BASE_URL}/accounts/{account_id}/bills')
@@ -90,7 +91,7 @@ def fetch_nessie_data() -> Dict[str, Any]:
             except Exception as e:
                 print(f"    ✗ Bills failed: {e}")
                 data['bills_by_account'][account_id] = []
-            
+
             # Fetch loans
             try:
                 response = session.get(f'{NESSIE_BASE_URL}/accounts/{account_id}/loans')
@@ -101,10 +102,10 @@ def fetch_nessie_data() -> Dict[str, Any]:
             except Exception as e:
                 print(f"    ✗ Loans failed: {e}")
                 data['loans_by_account'][account_id] = []
-        
+
         print(f"\n✓ Successfully fetched Nessie data")
         return data
-        
+
     except Exception as e:
         print(f"\n✗ Error fetching Nessie data: {e}")
         raise
@@ -113,10 +114,10 @@ def fetch_nessie_data() -> Dict[str, Any]:
 def save_cache(data: Dict[str, Any]) -> None:
     """Save data to cache file."""
     CACHE_DIR.mkdir(exist_ok=True)
-    
+
     with open(CACHE_FILE, 'w') as f:
         json.dump(data, f, indent=2)
-    
+
     print(f"\n✓ Cached data saved to {CACHE_FILE}")
 
 
@@ -124,24 +125,24 @@ def load_cache() -> Dict[str, Any]:
     """Load data from cache file."""
     if not CACHE_FILE.exists():
         return None
-    
+
     with open(CACHE_FILE, 'r') as f:
         data = json.load(f)
-    
+
     print(f"✓ Loaded cached data from {CACHE_FILE}")
     print(f"  Fetched at: {data.get('fetched_at', 'unknown')}")
     print(f"  Accounts: {len(data.get('accounts', []))}")
-    
+
     return data
 
 
 def get_test_data(force_refresh: bool = False) -> Dict[str, Any]:
     """
     Get test data, either from cache or by fetching from API.
-    
+
     Args:
         force_refresh: If True, always fetch fresh data from API
-    
+
     Returns:
         Dictionary containing Nessie API data
     """
@@ -149,7 +150,7 @@ def get_test_data(force_refresh: bool = False) -> Dict[str, Any]:
         cached_data = load_cache()
         if cached_data:
             return cached_data
-    
+
     # Fetch fresh data
     data = fetch_nessie_data()
     save_cache(data)
@@ -199,30 +200,30 @@ def create_simulation_request_from_nessie(
 ) -> Dict[str, Any]:
     """
     Transform Nessie API data into a simulation request.
-    
+
     Args:
         nessie_data: Raw data from Nessie API
         user_monthly_income: Override estimated salary (use if provided)
-    
+
     Returns:
         Dictionary in SimulationRequest format
     """
     accounts = nessie_data.get('accounts', [])
-    
+
     # Calculate liquid assets (checking + savings)
     liquid_assets = sum(
-        acc['balance'] 
-        for acc in accounts 
+        acc['balance']
+        for acc in accounts
         if acc.get('type') in ['Checking', 'Savings']
     )
-    
+
     # Calculate credit debt
     credit_debt = sum(
-        acc['balance'] 
-        for acc in accounts 
+        acc['balance']
+        for acc in accounts
         if acc.get('type') == 'Credit Card'
     )
-    
+
     # Calculate loan debt and monthly payments from all accounts
     loan_debt = 0
     monthly_loan_payments = 0
@@ -238,19 +239,19 @@ def create_simulation_request_from_nessie(
                 estimated_payment = loan.get('amount', 0) * 0.05
                 monthly_loan_payments += estimated_payment
                 print(f"  ℹ Estimated loan payment: ${estimated_payment:,.2f}/month (5% of balance)")
-    
+
     # Calculate monthly spending from purchases
     all_purchases = []
     for account_id, purchases in nessie_data.get('purchases_by_account', {}).items():
         all_purchases.extend(purchases)
-    
+
     if all_purchases:
         total_spending = sum(p.get('amount', 0) for p in all_purchases)
         # Assume purchases cover ~90 days
         monthly_spending = (total_spending / 90) * 30
     else:
         monthly_spending = 3000  # Default fallback
-    
+
     # Calculate spending volatility from purchase variance
     import numpy as np
     if len(all_purchases) > 10:
@@ -259,7 +260,7 @@ def create_simulation_request_from_nessie(
         spending_volatility = min(max(spending_volatility, 0.05), 0.30)  # Clamp to reasonable range
     else:
         spending_volatility = 0.15
-    
+
     # Extract salary from deposits or use override
     if user_monthly_income:
         monthly_income = user_monthly_income
@@ -267,7 +268,7 @@ def create_simulation_request_from_nessie(
         print(f"  ✓ Using provided monthly income: ${monthly_income:,.2f}")
     else:
         monthly_income, salary_details = extract_salary_from_deposits(nessie_data)
-    
+
     return {
         "financialProfile": {
             "liquidAssets": round(liquid_assets, 2),
@@ -299,16 +300,16 @@ def create_simulation_request_from_nessie(
 
 if __name__ == '__main__':
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='Fetch and cache Nessie API data for testing')
     parser.add_argument('--refresh', action='store_true', help='Force refresh data from API')
     parser.add_argument('--create-request', action='store_true', help='Create simulation request from cached data')
-    
+
     args = parser.parse_args()
-    
+
     # Fetch or load data
     data = get_test_data(force_refresh=args.refresh)
-    
+
     # Optionally create simulation request
     if args.create_request:
         print("\n" + "="*60)

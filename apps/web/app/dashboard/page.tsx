@@ -362,7 +362,7 @@ export default function DashboardPage() {
               </p>
             </div>
             <Button asChild>
-              <Link href="/onboarding">
+              <Link href="/goal">
                 Start Simulation
                 <ArrowRight className="w-4 h-4" />
               </Link>

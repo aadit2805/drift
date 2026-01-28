@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { generateBriefing, type NarrativeRequest, type BriefingResponse } from '@/lib/api'
 
-interface AudioNarrationProps {
+interface NarrationProps {
   simulationResults: {
     successProbability: number
     medianOutcome: number
@@ -34,7 +34,7 @@ interface AudioNarrationProps {
   }
 }
 
-export function AudioNarration({ simulationResults, financialProfile, goal }: AudioNarrationProps) {
+export function Narration({ simulationResults, financialProfile, goal }: NarrationProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)

@@ -3,7 +3,7 @@
 import { ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react'
 import type { SensitivityAnalysis } from '@/types'
 
-interface SensitivityTableProps {
+interface SensitivityProps {
   baseProbability: number
   sensitivityData?: SensitivityAnalysis | null
   recommendations?: string[]
@@ -17,7 +17,7 @@ interface ScenarioRow {
   impact: number
 }
 
-export function SensitivityTable({ baseProbability, sensitivityData, recommendations, customScenarios }: SensitivityTableProps) {
+export function Sensitivity({ baseProbability, sensitivityData, recommendations, customScenarios }: SensitivityProps) {
   // Convert API sensitivity data to display format
   const apiScenarios: ScenarioRow[] = sensitivityData?.sensitivities
     ? Object.entries(sensitivityData.sensitivities)

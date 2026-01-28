@@ -4,7 +4,7 @@ import { Check, Clock, AlertCircle, Server } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import type { Job, NodeProgress } from '@/types'
 
-interface JobProgressMonitorProps {
+interface JobProgressProps {
   job: Job | null
 }
 
@@ -74,7 +74,7 @@ function StatusBadge({ status }: { status: Job['status'] }) {
   )
 }
 
-export function JobProgressMonitor({ job }: JobProgressMonitorProps) {
+export function JobProgress({ job }: JobProgressProps) {
   if (!job) {
     return (
       <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/50">

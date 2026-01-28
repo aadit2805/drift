@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { VoiceGoalInput } from '@/components/VoiceGoalInput'
+import { VoiceInput } from '@/components/VoiceInput'
 
 interface UserInputs {
   age: string
@@ -67,7 +67,7 @@ export default function OnboardingPage() {
       : `${parsedGoal.timelineMonths} months`
     const goalText = `Save $${parsedGoal.targetAmount.toLocaleString()} for ${parsedGoal.goalType.replace('_', ' ')} in ${timelineText}`
 
-    // Save and navigate immediately - VoiceGoalInput already handled the pause
+    // Save and navigate immediately - VoiceInput already handled the pause
     localStorage.setItem('userInputs', JSON.stringify({
       ...inputs,
       goal: goalText,
@@ -180,7 +180,7 @@ export default function OnboardingPage() {
               <h1 className="text-2xl font-medium mb-2">Your goal</h1>
               <p className="text-muted-foreground mb-6">Tell me what you're saving for.</p>
 
-              <VoiceGoalInput onGoalComplete={handleGoalComplete} />
+              <VoiceInput onGoalComplete={handleGoalComplete} />
 
               {/* Back button only - forward is handled by voice completion */}
               <div className="flex justify-start mt-6">

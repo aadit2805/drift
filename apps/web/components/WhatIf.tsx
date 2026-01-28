@@ -13,7 +13,7 @@ interface WhatIfScenario {
   implementationTips: string[]
 }
 
-interface WhatIfScenariosProps {
+interface WhatIfProps {
   currentSuccessProbability: number
   goalAmount: number
   medianOutcome: number
@@ -22,14 +22,14 @@ interface WhatIfScenariosProps {
   userInputs: UserInputs
 }
 
-export function WhatIfScenarios({
+export function WhatIf({
   currentSuccessProbability,
   goalAmount,
   medianOutcome,
   timelineMonths,
   financialProfile,
   userInputs,
-}: WhatIfScenariosProps) {
+}: WhatIfProps) {
   const [scenarios, setScenarios] = useState<WhatIfScenario[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +39,7 @@ export function WhatIfScenarios({
       try {
         setIsLoading(true)
         const shortfall = Math.max(0, goalAmount - medianOutcome)
-        
+
         if (shortfall <= 0) {
           setScenarios([])
           setIsLoading(false)

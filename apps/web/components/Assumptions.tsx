@@ -2,11 +2,11 @@
 
 import type { Assumptions } from '@/types'
 
-interface AssumptionsDisplayProps {
+interface AssumptionsProps {
   assumptions?: Assumptions
 }
 
-export function AssumptionsDisplay({ assumptions }: AssumptionsDisplayProps) {
+export function Assumptions({ assumptions }: AssumptionsProps) {
   if (!assumptions) {
     return null
   }
@@ -14,7 +14,7 @@ export function AssumptionsDisplay({ assumptions }: AssumptionsDisplayProps) {
   return (
     <div className="card p-6 bg-slate-50">
       <h3 className="text-lg font-semibold text-slate-900 mb-4">Simulation Assumptions</h3>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Investment Returns */}
         <div>

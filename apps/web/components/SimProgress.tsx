@@ -3,17 +3,17 @@
 import { useEffect, useState } from 'react'
 import { Cpu } from 'lucide-react'
 
-interface SimulationProgressProps {
+interface SimProgressProps {
   totalSimulations: number
   isRunning: boolean
   onComplete?: () => void
 }
 
-export function SimulationProgress({
+export function SimProgress({
   totalSimulations,
   isRunning,
   onComplete,
-}: SimulationProgressProps) {
+}: SimProgressProps) {
   const [completed, setCompleted] = useState(0)
   const [workers] = useState(4) // Simulated parallel workers
 

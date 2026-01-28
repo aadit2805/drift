@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 
-interface InsightCardProps {
+interface InsightProps {
   icon: ReactNode
   title: string
   value: string
@@ -8,13 +8,13 @@ interface InsightCardProps {
   variant: 'default' | 'success' | 'warning' | 'danger'
 }
 
-export function InsightCard({
+export function Insight({
   icon,
   title,
   value,
   description,
   variant = 'default',
-}: InsightCardProps) {
+}: InsightProps) {
   const valueColors = {
     default: '',
     success: 'text-[var(--success)]',
