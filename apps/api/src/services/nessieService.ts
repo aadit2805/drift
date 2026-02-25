@@ -1,7 +1,10 @@
 import axios from 'axios'
 
 const NESSIE_BASE_URL = process.env.NESSIE_BASE_URL || 'http://api.nessieisreal.com'
-const NESSIE_API_KEY = process.env.NESSIE_API_KEY || '4389318c54ddf318af62eda4ceed5f66'
+const NESSIE_API_KEY = process.env.NESSIE_API_KEY
+if (!NESSIE_API_KEY) {
+  console.warn('Warning: NESSIE_API_KEY not set in environment variables')
+}
 
 // Alex Morgan - comprehensive 12-month financial profile
 const DEFAULT_CUSTOMER_ID = '697541cf95150878eafea4ff'
