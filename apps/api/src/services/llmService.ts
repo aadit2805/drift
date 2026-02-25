@@ -1,4 +1,5 @@
 import { geminiService } from './geminiService.js'
+import type { SimulationResults, FinancialProfile } from '../types/index.js'
 
 interface ParsedGoal {
   goalType: string
@@ -9,18 +10,22 @@ interface ParsedGoal {
   needsClarification?: boolean
 }
 
+interface GoalInput {
+  targetAmount: number
+  timelineMonths: number
+  goalType: string
+}
+
 export class LLMService {
   async parseGoal(goal: string): Promise<ParsedGoal> {
-    // Delegate to Gemini service for goal parsing
     return geminiService.parseGoal(goal)
   }
 
   async generateRecommendations(
-    simulationResults: any,
-    financialProfile: any,
-    goal: any
+    simulationResults: SimulationResults,
+    financialProfile: FinancialProfile,
+    goal: GoalInput
   ): Promise<string[]> {
-    // Delegate to Gemini service for AI-powered recommendations
     return geminiService.generateRecommendations(
       simulationResults,
       financialProfile,

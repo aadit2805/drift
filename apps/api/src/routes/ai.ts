@@ -303,8 +303,8 @@ router.post('/voice-results', async (req: Request, res: Response) => {
       userMessage,
       conversationHistory || [],
       {
-        simulationResults: context.simulationResults as any,
-        financialProfile: context.financialProfile as any,
+        simulationResults: context.simulationResults as SimulationResults,
+        financialProfile: context.financialProfile as FinancialProfile,
         goal: context.goal,
       }
     )
