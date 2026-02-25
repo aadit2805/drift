@@ -1,6 +1,5 @@
-import { spawn } from 'child_process'
-import path from 'path'
 import type { SimulationRequest, SimulationResults } from '../types/index.js'
+import { SimulationService } from './simulationService.js'
 
 export interface WhatIfScenario {
   name: string
@@ -15,8 +14,7 @@ interface SpendingCategory {
 }
 
 export class WhatIfService {
-  private simulationDir = path.resolve(process.cwd(), '../../simulation')
-  private pythonPath = path.join(this.simulationDir, 'venv', 'Scripts', 'python.exe')
+  private simulationService = new SimulationService()
 
   async generateScenarios(
     baseRequest: SimulationRequest,
@@ -132,41 +130,7 @@ export class WhatIfService {
   }
 
   private async runSimulation(request: SimulationRequest): Promise<SimulationResults> {
-    return new Promise((resolve, reject) => {
-      const process = spawn(this.pythonPath, [
-        path.join(this.simulationDir, 'main.py'),
-        '--mode', 'simulate',
-        '--input', JSON.stringify(request),
-      ])
-
-      let stdout = ''
-      let stderr = ''
-
-      process.stdout.on('data', (data) => {
-        stdout += data.toString()
-      })
-
-      process.stderr.on('data', (data) => {
-        stderr += data.toString()
-      })
-
-      process.on('close', (code) => {
-        if (code === 0) {
-          try {
-            const results = JSON.parse(stdout)
-            resolve(results)
-          } catch (e) {
-            reject(new Error(`Failed to parse simulation results: ${stdout}`))
-          }
-        } else {
-          reject(new Error(`Python simulation failed: ${stderr}`))
-        }
-      })
-
-      process.on('error', (err) => {
-        reject(err)
-      })
-    })
+    return this.simulationService.runSimulation(request)
   }
 
   private getTips(category: string): string[] {

@@ -7,6 +7,7 @@ import llmRouter from './routes/llm.js'
 import whatIfRouter from './routes/whatif.js'
 import aiRouter from './routes/ai.js'
 import jobsRouter from './routes/jobs.js'
+import plaidRouter from './routes/plaid.js'
 
 // Load .env from monorepo root (turbo runs from root, so cwd is root)
 dotenv.config()
@@ -27,16 +28,16 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/nessie', nessieRouter)
-app.use('/api', nessieRouter) // Also mount nessie routes at /api for convenience
 app.use('/api', simulationRouter)
 app.use('/api', llmRouter)
 app.use('/api', whatIfRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api', jobsRouter) // HPC cluster job management
+app.use('/api/plaid', plaidRouter) // Plaid bank connectivity
 
 // Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack)
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(`[${req.method} ${req.path}] Error:`, err.message, err.stack)
   res.status(500).json({ error: 'Internal server error' })
 })
 
