@@ -27,46 +27,29 @@ def run_sensitivity_analysis(request: SimulationRequest) -> SensitivityAnalysis:
     base_results = run_monte_carlo(request, n_workers=2)
     base_probability = base_results.success_probability
 
-    # Define scenarios
+    # Define scenarios as (attribute_path, field, multiplier_or_delta) tuples
     scenarios = {
-        "income_plus_10": lambda r: setattr(
-            r.user_inputs, 'monthly_income',
-            r.user_inputs.monthly_income * 1.1
-        ) or r,
-        "income_minus_10": lambda r: setattr(
-            r.user_inputs, 'monthly_income',
-            r.user_inputs.monthly_income * 0.9
-        ) or r,
-        "spending_minus_10": lambda r: setattr(
-            r.financial_profile, 'monthly_spending',
-            r.financial_profile.monthly_spending * 0.9
-        ) or r,
-        "spending_minus_20": lambda r: setattr(
-            r.financial_profile, 'monthly_spending',
-            r.financial_profile.monthly_spending * 0.8
-        ) or r,
-        "spending_plus_10": lambda r: setattr(
-            r.financial_profile, 'monthly_spending',
-            r.financial_profile.monthly_spending * 1.1
-        ) or r,
-        "timeline_plus_6mo": lambda r: setattr(
-            r.goal, 'timeline_months',
-            r.goal.timeline_months + 6
-        ) or r,
-        "timeline_plus_12mo": lambda r: setattr(
-            r.goal, 'timeline_months',
-            r.goal.timeline_months + 12
-        ) or r,
+        "income_plus_10": ("user_inputs", "monthly_income", 1.1, "multiply"),
+        "income_minus_10": ("user_inputs", "monthly_income", 0.9, "multiply"),
+        "spending_minus_10": ("financial_profile", "monthly_spending", 0.9, "multiply"),
+        "spending_minus_20": ("financial_profile", "monthly_spending", 0.8, "multiply"),
+        "spending_plus_10": ("financial_profile", "monthly_spending", 1.1, "multiply"),
+        "timeline_plus_6mo": ("goal", "timeline_months", 6, "add"),
+        "timeline_plus_12mo": ("goal", "timeline_months", 12, "add"),
     }
 
     sensitivities: Dict[str, SensitivityResult] = {}
     max_impact = 0
     most_impactful = ""
 
-    for name, modifier in scenarios.items():
+    for name, (obj_attr, field, value, op) in scenarios.items():
         # Deep copy to avoid mutation
         modified_request = deepcopy(request)
-        modifier(modified_request)
+        obj = getattr(modified_request, obj_attr)
+        if op == "multiply":
+            setattr(obj, field, getattr(obj, field) * value)
+        else:
+            setattr(obj, field, getattr(obj, field) + value)
 
         # Run simulation with modified parameters
         results = run_monte_carlo(modified_request, n_workers=2)

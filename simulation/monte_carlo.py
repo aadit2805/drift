@@ -16,12 +16,16 @@ def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> Tup
     Run a batch of Monte Carlo simulations.
 
     This function is designed to be called in parallel by multiple workers.
+    Supports both legacy mode and account-aware mode with per-card/loan modeling.
     """
     request, seeds, batch_id = args
 
     params = request.simulation_params or SimulationParams()
     n_sims = len(seeds)
     months = request.goal.timeline_months
+
+    if months <= 0:
+        raise ValueError(f"timeline_months must be positive, got {months}")
 
     # Initialize random state for reproducibility
     rng = np.random.default_rng(seeds[0])
@@ -48,25 +52,25 @@ def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> Tup
         params.emergency_max,
         (n_sims, months)
     )
-    
+
     # Inflation adjustments (monthly compounding)
     monthly_inflation = rng.normal(
         params.inflation_rate / 12,
         params.inflation_volatility / 12,
         (n_sims, months)
     )
-    
+
     # Annual raises and semi-annual promotions
     # Pre-calculate which months get raises (every 12 months) and promotions (every 6 months)
     annual_raise_months = set(range(11, months, 12))  # Month 11, 23, 35, etc.
     promotion_months = set(range(5, months, 6))  # Month 5, 11, 17, 23, etc.
-    
+
     annual_raises = rng.normal(
         params.annual_raise_mean,
         params.annual_raise_volatility,
         (n_sims, months)
     )
-    
+
     promotion_events = rng.random((n_sims, months)) < params.promotion_probability
     promotion_raises = rng.normal(
         params.promotion_raise_mean,
@@ -86,20 +90,50 @@ def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> Tup
     # Track cumulative income multiplier for raises and promotions
     income_multiplier = np.ones(n_sims)
     spending_multiplier = np.ones(n_sims)
-    
+
+    # Account-aware simulation: track credit card balances separately
+    if params.use_account_aware_simulation and params.credit_cards:
+        # Initialize credit card balances for each simulation
+        # Shape: (n_sims, n_cards)
+        n_cards = len(params.credit_cards)
+        card_balances = np.zeros((n_sims, n_cards))
+        card_aprs = np.zeros(n_cards)
+        card_min_payments = np.zeros(n_cards)
+
+        for i, card in enumerate(params.credit_cards):
+            card_balances[:, i] = card.balance
+            card_aprs[i] = card.apr / 100.0  # Convert percentage to decimal
+            card_min_payments[i] = card.minimum_payment
+    else:
+        card_balances = None
+
+    # Account-aware simulation: track loan balances separately
+    if params.use_account_aware_simulation and params.loans:
+        n_loans = len(params.loans)
+        loan_balances = np.zeros((n_sims, n_loans))
+        loan_rates = np.zeros(n_loans)
+        loan_payments = np.zeros(n_loans)
+
+        for i, loan in enumerate(params.loans):
+            loan_balances[:, i] = loan.balance
+            loan_rates[i] = loan.interest_rate / 100.0  # Convert percentage to decimal
+            loan_payments[i] = loan.monthly_payment
+    else:
+        loan_balances = None
+
     for month in range(months):
         # Apply inflation to spending (compounds monthly)
         spending_multiplier *= (1 + monthly_inflation[:, month])
-        
+
         # Apply annual raises
         if month in annual_raise_months:
             income_multiplier *= (1 + annual_raises[:, month])
-        
+
         # Apply semi-annual promotion chances
         if month in promotion_months:
             promotions_this_month = promotion_events[:, month]
             income_multiplier[promotions_this_month] *= (1 + promotion_raises[:, month][promotions_this_month])
-        
+
         # Income with variance, raises, and promotions
         income = base_income * income_multiplier * income_noise[:, month]
 
@@ -109,30 +143,74 @@ def run_simulation_batch(args: Tuple[SimulationRequest, np.ndarray, int]) -> Tup
         # Emergency expenses
         emergencies = emergency_events[:, month] * emergency_amounts[:, month]
 
-        # CRITICAL FIX #1: Include loan payments in balance calculation
-        # Previously these were completely ignored, causing unrealistic scenarios
-        
         # Calculate investable balance (above emergency fund threshold)
         investable_balance = np.maximum(balances[:, month] - emergency_fund_target, 0)
 
-        # CRITICAL FIX #2: Only apply investment returns to investable portion
-        # Previously returns were applied to entire balance including cash accounts
-        # This caused unrealistic positive outcomes and mixed up account types
+        # Investment returns on investable portion only
         returns = investable_balance * market_returns[:, month]
 
-        # Update balances with all cash flows
-        # The key fix: include monthly_loan_payments which was missing before
-        balances[:, month + 1] = (
-            balances[:, month] +
-            income -
-            spending -
-            emergencies -
-            monthly_loan_payments +  # CRITICAL FIX: Include loan payments
-            returns
-        )
+        # ===== ACCOUNT-AWARE SIMULATION =====
+        if params.use_account_aware_simulation:
+            credit_interest = np.zeros(n_sims)
+            credit_payments = np.zeros(n_sims)
+            actual_loan_payments = np.zeros(n_sims)
 
-        # Prevent unrealistic negative balances (can go negative but represents debt)
-        # This is realistic - user can go into overdraft, but it costs more interest
+            # Credit card interest accrual and payments
+            if card_balances is not None:
+                for i in range(len(params.credit_cards)):
+                    # Monthly interest on outstanding balance
+                    monthly_rate = card_aprs[i] / 12
+                    interest = card_balances[:, i] * monthly_rate
+                    credit_interest += interest
+
+                    # Add interest to balance
+                    card_balances[:, i] += interest
+
+                    # Minimum payment reduces balance
+                    payment = np.minimum(card_min_payments[i], card_balances[:, i])
+                    card_balances[:, i] -= payment
+                    credit_payments += payment
+
+                    # Extra payment if positive cash flow and balance remains
+                    # (Simplified: don't model extra payments in vectorized form for performance)
+
+            # Loan interest and payments
+            if loan_balances is not None:
+                for i in range(len(params.loans)):
+                    # Monthly interest
+                    monthly_rate = loan_rates[i] / 12
+                    interest = loan_balances[:, i] * monthly_rate
+
+                    # Fixed payment covers interest + principal
+                    payment = np.minimum(loan_payments[i], loan_balances[:, i] + interest)
+                    principal_payment = np.maximum(0, payment - interest)
+
+                    # Update loan balance
+                    loan_balances[:, i] = np.maximum(0, loan_balances[:, i] - principal_payment)
+                    actual_loan_payments += payment
+
+            # Update balance with account-aware cash flows
+            balances[:, month + 1] = (
+                balances[:, month] +
+                income -
+                spending -
+                emergencies -
+                credit_interest -  # Interest cost
+                credit_payments -  # Minimum payments
+                actual_loan_payments +  # Loan payments
+                returns
+            )
+        else:
+            # ===== LEGACY SIMULATION =====
+            # Update balances with all cash flows (original logic)
+            balances[:, month + 1] = (
+                balances[:, month] +
+                income -
+                spending -
+                emergencies -
+                monthly_loan_payments +  # Fixed loan payments
+                returns
+            )
 
     return balances[:, -1], batch_id  # Return final balances with batch id
 
@@ -252,7 +330,7 @@ def benchmark_simulation(request: SimulationRequest) -> dict:
 
         results[f"{n_workers}_workers"] = {
             "time_seconds": elapsed,
-            "simulations_per_second": request.simulation_params.n_simulations / elapsed
+            "simulations_per_second": request.simulation_params.n_simulations / elapsed if elapsed > 0 else float('inf')
         }
 
     # Calculate speedup
