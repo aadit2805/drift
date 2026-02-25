@@ -5,14 +5,10 @@ import { Mic, Send, Loader2, Volume2, MessageCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { sendVoiceResults, type ConversationMessage, type VoiceResultsContext } from '@/lib/api'
+import type { DisplayMessage } from '@/types'
 
 interface VoiceChatProps {
   context: VoiceResultsContext
-}
-
-interface DisplayMessage extends ConversationMessage {
-  id: string
-  isPlaying?: boolean
 }
 
 export function VoiceChat({ context }: VoiceChatProps) {

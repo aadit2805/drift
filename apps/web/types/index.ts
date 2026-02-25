@@ -225,3 +225,101 @@ export interface JobSubmitResponse {
   queuePosition: number
   estimatedWait: number
 }
+
+// Plaid Account Types
+export interface DepositoryAccount {
+  id: string
+  type: 'depository'
+  subtype: string
+  name: string
+  balance: number
+  available: number | null
+}
+
+export interface CreditAccountType {
+  id: string
+  type: 'credit'
+  name: string
+  balance: number
+  limit: number
+  utilization: number
+  apr: number
+  minimumPayment: number
+  lastPaymentAmount: number | null
+  lastPaymentDate: string | null
+}
+
+export interface LoanAccountType {
+  id: string
+  type: 'loan' | 'mortgage'
+  subtype: string
+  name: string
+  balance: number
+  originalAmount: number | null
+  interestRate: number
+  monthlyPayment: number
+  originationDate: string | null
+  expectedPayoffDate: string | null
+}
+
+export interface InvestmentAccountType {
+  id: string
+  type: 'investment'
+  subtype: string
+  name: string
+  balance: number
+  holdings: {
+    symbol: string | null
+    name: string | null
+    quantity: number
+    value: number
+    type: string | null
+  }[]
+  allocation: {
+    stocks: number
+    bonds: number
+    cash: number
+    other: number
+  }
+}
+
+export type PlaidAccount = DepositoryAccount | CreditAccountType | LoanAccountType | InvestmentAccountType
+
+export interface IncomeProfile {
+  monthlyAmount: number
+  frequency: 'weekly' | 'biweekly' | 'monthly' | 'irregular'
+  stabilityScore: number
+}
+
+export interface SpendingProfile {
+  monthlyAmount: number
+  byCategory: Record<string, number>
+  volatility: number
+  fixedExpenses: number
+  variableExpenses: number
+}
+
+export interface EnhancedFinancialProfile {
+  depository: DepositoryAccount[]
+  credit: CreditAccountType[]
+  loans: LoanAccountType[]
+  investments: InvestmentAccountType[]
+  income: IncomeProfile
+  spending: SpendingProfile
+  totalLiquid: number
+  totalCreditDebt: number
+  totalLoanDebt: number
+  totalInvestments: number
+  netWorth: number
+}
+
+// Shared UI types
+export interface ConversationMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface DisplayMessage extends ConversationMessage {
+  id: string
+  isPlaying?: boolean
+}

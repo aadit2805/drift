@@ -31,7 +31,8 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const customerId = localStorage.getItem('customerId')
-    if (!customerId) {
+    const plaidUserId = localStorage.getItem('plaidUserId')
+    if (!customerId && !plaidUserId) {
       router.push('/login')
     } else {
       setIsAuthenticated(true)

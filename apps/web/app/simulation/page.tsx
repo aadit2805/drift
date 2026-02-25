@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Check, AlertCircle } from 'lucide-react'
 import {
   getFinancialProfile,
+  getPlaidFinancialProfile,
   parseGoal,
   submitJob,
   getJobStatus,
@@ -64,7 +65,8 @@ export default function SimulationPage() {
 
   useEffect(() => {
     const customerId = localStorage.getItem('customerId')
-    if (!customerId) {
+    const plaidUserId = localStorage.getItem('plaidUserId')
+    if (!customerId && !plaidUserId) {
       router.push('/login')
     } else {
       setIsAuthenticated(true)
@@ -231,12 +233,15 @@ export default function SimulationPage() {
       try {
         const storedInputs = localStorage.getItem('userInputs')
         const customerId = localStorage.getItem('customerId')
+        const plaidUserId = localStorage.getItem('plaidUserId')
+        const connectionType = localStorage.getItem('connectionType')
+
         if (!storedInputs) {
           setError('No user inputs found. Please set a goal first.')
           return
         }
-        if (!customerId) {
-          setError('No customer ID found. Please log in again.')
+        if (!customerId && !plaidUserId) {
+          setError('No account connected. Please log in again.')
           return
         }
 
@@ -248,8 +253,28 @@ export default function SimulationPage() {
         updateStep(0, 'active')
         let financialProfile: FinancialProfile
         try {
-          financialProfile = await getFinancialProfile(customerId)
-          updateStep(0, 'done')
+          if (connectionType === 'plaid' && plaidUserId) {
+            // Fetch from Plaid
+            const plaidProfile = await getPlaidFinancialProfile(plaidUserId)
+            financialProfile = {
+              liquidAssets: plaidProfile.liquidAssets,
+              creditDebt: plaidProfile.creditDebt,
+              loanDebt: plaidProfile.loanDebt,
+              monthlyLoanPayments: plaidProfile.monthlyLoanPayments,
+              monthlyIncome: plaidProfile.monthlyIncome,
+              monthlySpending: plaidProfile.monthlySpending,
+              monthlyBills: plaidProfile.monthlyBills,
+              spendingByCategory: plaidProfile.spendingByCategory,
+              spendingVolatility: plaidProfile.spendingVolatility,
+            }
+            updateStep(0, 'done', 'Plaid')
+          } else if (customerId) {
+            // Fetch from Nessie
+            financialProfile = await getFinancialProfile(customerId)
+            updateStep(0, 'done')
+          } else {
+            throw new Error('No valid connection')
+          }
           setProgress(25)
         } catch (err) {
           console.error('Failed to fetch financial profile:', err)

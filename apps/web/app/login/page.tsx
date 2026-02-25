@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, AlertCircle, Loader2, ChevronRight } from 'lucide-react'
-import { validateCustomer } from '@/lib/api'
+import { ArrowRight, AlertCircle, Loader2, ChevronRight, Building2 } from 'lucide-react'
+import { validateCustomer, getPlaidStatus } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { PlaidLink } from '@/components/PlaidLink'
 
 const DEMO_ACCOUNTS = [
   {
@@ -43,10 +44,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [showDemoAccounts, setShowDemoAccounts] = useState(false)
+  const [connectionType, setConnectionType] = useState<'plaid' | 'demo'>('plaid')
+  const [plaidUserId] = useState(() => `user-${Date.now()}`)
 
   useEffect(() => {
     const existingCustomerId = localStorage.getItem('customerId')
-    if (existingCustomerId) {
+    const existingPlaidUserId = localStorage.getItem('plaidUserId')
+    if (existingCustomerId || existingPlaidUserId) {
       router.push('/dashboard')
     } else {
       setCheckingAuth(false)
@@ -93,12 +97,23 @@ export default function LoginPage() {
 
       localStorage.setItem('customerId', demoId)
       localStorage.setItem('customerData', JSON.stringify(data.customer))
+      localStorage.setItem('connectionType', 'nessie')
       router.push('/dashboard')
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Connection error. Please try again.'
       setError(errorMessage)
       setLoading(false)
     }
+  }
+
+  const handlePlaidSuccess = () => {
+    localStorage.setItem('plaidUserId', plaidUserId)
+    localStorage.setItem('connectionType', 'plaid')
+    router.push('/dashboard')
+  }
+
+  const handlePlaidError = (errorMsg: string) => {
+    setError(errorMsg)
   }
 
   if (checkingAuth) {
@@ -136,75 +151,115 @@ export default function LoginPage() {
           </div>
 
           <h2 className="text-2xl font-medium mb-2">Sign in</h2>
-          <p className="text-muted-foreground mb-8">
-            Enter your Capital One Customer ID to access your account.
+          <p className="text-muted-foreground mb-6">
+            Connect your bank account to get started.
           </p>
 
-          <form onSubmit={handleLogin}>
-            <div className="mb-4">
-              <label htmlFor="customerId" className="block text-sm font-medium mb-2">
-                Customer ID
-              </label>
-              <Input
-                id="customerId"
-                type="text"
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
-                placeholder="e.g., 697541cf95150878eafea4ff"
-                className="font-mono text-sm"
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Your 24-character Nessie Customer ID
+          {/* Connection type tabs */}
+          <div className="flex gap-2 mb-6 p-1 bg-muted rounded-lg">
+            <button
+              type="button"
+              onClick={() => setConnectionType('plaid')}
+              className={`flex-1 py-2 px-4 text-sm rounded-md transition-colors ${
+                connectionType === 'plaid'
+                  ? 'bg-background shadow-sm font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Connect Bank
+            </button>
+            <button
+              type="button"
+              onClick={() => setConnectionType('demo')}
+              className={`flex-1 py-2 px-4 text-sm rounded-md transition-colors ${
+                connectionType === 'demo'
+                  ? 'bg-background shadow-sm font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Demo Mode
+            </button>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-[var(--error)] text-sm mb-4 p-3 bg-[var(--error-muted)] rounded-lg">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {connectionType === 'plaid' ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-card/50 rounded-lg border border-border/30">
+                <div className="flex items-center gap-3 mb-3">
+                  <Building2 className="w-5 h-5 text-[hsl(var(--accent))]" />
+                  <span className="font-medium">Secure Bank Connection</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Connect your bank accounts securely with Plaid. Your credentials are never shared with us.
+                </p>
+                <PlaidLink
+                  userId={plaidUserId}
+                  onSuccess={handlePlaidSuccess}
+                  onError={handlePlaidError}
+                  className="w-full"
+                />
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center">
+                In sandbox mode, use credentials: user_good / pass_good
               </p>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <form onSubmit={handleLogin}>
+                <div className="mb-4">
+                  <label htmlFor="customerId" className="block text-sm font-medium mb-2">
+                    Customer ID
+                  </label>
+                  <Input
+                    id="customerId"
+                    type="text"
+                    value={customerId}
+                    onChange={(e) => setCustomerId(e.target.value)}
+                    placeholder="e.g., 697541cf95150878eafea4ff"
+                    className="font-mono text-sm"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your 24-character Nessie Customer ID
+                  </p>
+                </div>
 
-            {error && (
-              <div className="flex items-center gap-2 text-[var(--error)] text-sm mb-4 p-3 bg-[var(--error-muted)] rounded-lg">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{error}</span>
+                <Button
+                  type="submit"
+                  disabled={!customerId.trim() || loading}
+                  className="w-full mb-4"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      Connect Account
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border/30" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="px-2 bg-background text-muted-foreground">Or choose a demo</span>
+                </div>
               </div>
-            )}
 
-            <Button
-              type="submit"
-              disabled={!customerId.trim() || loading}
-              className="w-full mb-4"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  Connect Account
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </Button>
-
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/30" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="px-2 bg-background text-muted-foreground">Or</span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-              disabled={loading}
-              className="w-full mb-4"
-            >
-              Use a demo account
-            </Button>
-
-            {showDemoAccounts && (
-              <div className="space-y-3 mb-6 p-4 bg-card/50 rounded-lg border border-border/30">
+              <div className="space-y-3 p-4 bg-card/50 rounded-lg border border-border/30">
                 {DEMO_ACCOUNTS.map((account) => (
                   <button
                     key={account.id}
@@ -255,14 +310,13 @@ export default function LoginPage() {
                   </button>
                 ))}
               </div>
-            )}
-
-                      </form>
+            </div>
+          )}
 
           <p className="text-xs text-muted-foreground text-center mt-8">
-            This app uses the Capital One Nessie API for demo purposes.
-            <br />
-            No real banking data is accessed.
+            {connectionType === 'plaid'
+              ? 'Connect real bank accounts via Plaid or try demo mode.'
+              : 'Demo mode uses the Capital One Nessie API sandbox.'}
           </p>
 
           <div className="mt-8 pt-6 border-t border-border">

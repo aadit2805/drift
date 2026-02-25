@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge'
 import { formatCurrency, formatCurrencyWithSign } from '@/lib/utils'
 import type { SensitivityAnalysis, FinancialProfile, ParsedGoal, SimulationAssumptions, UserInputs, Assumptions } from '@/types'
 
+const NON_ESSENTIAL_KEYWORDS = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
+
 const HARDCODED_ASSUMPTIONS: Assumptions = {
   annualReturnMean: 0.07,
   annualReturnStd: 0.15,
@@ -70,7 +72,8 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const customerId = localStorage.getItem('customerId')
-    if (!customerId) {
+    const plaidUserId = localStorage.getItem('plaidUserId')
+    if (!customerId && !plaidUserId) {
       router.push('/login')
       return
     }
@@ -156,14 +159,12 @@ export default function ResultsPage() {
 
     const monthlyGap = shortfall / (results.timelineMonths || 1)
 
-    const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
-
     const monthlySpending = Object.fromEntries(
       Object.entries(financialProfile.spendingByCategory).map(([k, v]) => [k, v / 12])
     )
 
     const candidates = Object.entries(monthlySpending)
-      .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
+      .filter(([name]) => NON_ESSENTIAL_KEYWORDS.some(k => name.toLowerCase().includes(k)))
       .sort((a, b) => b[1] - a[1])
 
     if (candidates.length === 0) return []
@@ -209,14 +210,12 @@ export default function ResultsPage() {
   const buildCategoryScenarios = () => {
     if (!financialProfile || !financialProfile.spendingByCategory) return [] as { label: string; change: string; newProb: number; impact: number }[]
 
-    const nonEssentialKeywords = ['dining', 'restaurant', 'food & drink', 'entertainment', 'shopping', 'travel', 'subscription', 'coffee', 'bar', 'alcohol']
-
     const monthlySpending = Object.fromEntries(
       Object.entries(financialProfile.spendingByCategory).map(([k, v]) => [k, v / 12])
     )
 
     const candidates = Object.entries(monthlySpending)
-      .filter(([name]) => nonEssentialKeywords.some(k => name.toLowerCase().includes(k)))
+      .filter(([name]) => NON_ESSENTIAL_KEYWORDS.some(k => name.toLowerCase().includes(k)))
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
 

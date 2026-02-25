@@ -3,15 +3,29 @@ import type {
   FinancialProfile,
   SimulationRequest,
   SimulationResults,
+  SensitivityAnalysis,
   ParsedGoal,
   NessieAccount,
   NessiePurchase,
+  NessieDeposit,
+  NessieBill,
+  NessieLoan,
+  NessieMerchant,
   Job,
   ClusterStatus,
   JobSubmitResponse,
+  EnhancedFinancialProfile,
 } from '@/types'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+/** Convert a Blob to a base64 string */
+async function blobToBase64(blob: Blob): Promise<string> {
+  const arrayBuffer = await blob.arrayBuffer()
+  return btoa(
+    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+  )
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -32,22 +46,22 @@ export const nessieApi = {
     return response.data
   },
 
-  getAccountDeposits: async (accountId: string) => {
+  getAccountDeposits: async (accountId: string): Promise<NessieDeposit[]> => {
     const response = await api.get(`/api/nessie/accounts/${accountId}/deposits`)
     return response.data
   },
 
-  getAccountBills: async (accountId: string) => {
+  getAccountBills: async (accountId: string): Promise<NessieBill[]> => {
     const response = await api.get(`/api/nessie/accounts/${accountId}/bills`)
     return response.data
   },
 
-  getAccountLoans: async (accountId: string) => {
+  getAccountLoans: async (accountId: string): Promise<NessieLoan[]> => {
     const response = await api.get(`/api/nessie/accounts/${accountId}/loans`)
     return response.data
   },
 
-  getMerchants: async () => {
+  getMerchants: async (): Promise<NessieMerchant[]> => {
     const response = await api.get('/api/nessie/merchants')
     return response.data
   },
@@ -75,19 +89,19 @@ export const runSimulation = async (
   return response.data
 }
 
-export const runSensitivityAnalysis = async (request: SimulationRequest) => {
+export const runSensitivityAnalysis = async (request: SimulationRequest): Promise<SensitivityAnalysis> => {
   const response = await api.post('/api/sensitivity', request)
   return response.data
 }
 
 // Validate customer ID
-export const validateCustomer = async (customerId: string) => {
+export const validateCustomer = async (customerId: string): Promise<{ valid: boolean; error?: string; customer?: Record<string, unknown> }> => {
   const response = await api.post('/api/validate-customer', { customerId })
   return response.data
 }
 
 // Get accounts - requires customerId
-export const getAccounts = async (customerId: string) => {
+export const getAccounts = async (customerId: string): Promise<NessieAccount[]> => {
   const response = await api.get('/api/accounts', {
     params: { customerId }
   })
@@ -142,12 +156,7 @@ export const getAvailableVoices = async (): Promise<{
 
 // Transcribe audio using ElevenLabs Speech-to-Text
 export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
-  // Convert blob to base64
-  const arrayBuffer = await audioBlob.arrayBuffer()
-  const base64 = btoa(
-    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-  )
-
+  const base64 = await blobToBase64(audioBlob)
   const response = await api.post('/api/ai/transcribe', { audio: base64 })
   return response.data.transcript
 }
@@ -210,14 +219,7 @@ export const sendVoiceGoal = async (
   input: { audio?: Blob; text?: string },
   conversationHistory: ConversationMessage[]
 ): Promise<VoiceGoalResponse> => {
-  let audioBase64: string | undefined
-
-  if (input.audio) {
-    const arrayBuffer = await input.audio.arrayBuffer()
-    audioBase64 = btoa(
-      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    )
-  }
+  const audioBase64 = input.audio ? await blobToBase64(input.audio) : undefined
 
   const response = await api.post('/api/ai/voice-goal', {
     audio: audioBase64,
@@ -234,14 +236,7 @@ export const sendVoiceResults = async (
   conversationHistory: ConversationMessage[],
   context: VoiceResultsContext
 ): Promise<VoiceResultsResponse> => {
-  let audioBase64: string | undefined
-
-  if (input.audio) {
-    const arrayBuffer = await input.audio.arrayBuffer()
-    audioBase64 = btoa(
-      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    )
-  }
+  const audioBase64 = input.audio ? await blobToBase64(input.audio) : undefined
 
   const response = await api.post('/api/ai/voice-results', {
     audio: audioBase64,
@@ -276,6 +271,62 @@ export const cancelJob = async (jobId: string): Promise<{ success: boolean; mess
 // Get cluster status
 export const getClusterStatus = async (): Promise<ClusterStatus> => {
   const response = await api.get('/api/cluster/status')
+  return response.data
+}
+
+// Plaid API
+
+// Create a Plaid Link token
+export const createPlaidLinkToken = async (userId: string): Promise<{ linkToken: string }> => {
+  const response = await api.post('/api/plaid/create-link-token', { userId })
+  return response.data
+}
+
+// Exchange public token for access token
+export const exchangePlaidToken = async (publicToken: string, userId: string): Promise<{ success: boolean }> => {
+  const response = await api.post('/api/plaid/exchange-token', { publicToken, userId })
+  return response.data
+}
+
+// Get all Plaid accounts for a user
+export const getPlaidAccounts = async (userId: string): Promise<EnhancedFinancialProfile> => {
+  const response = await api.get(`/api/plaid/accounts/${userId}`)
+  return response.data
+}
+
+// Get Plaid financial profile formatted for simulation
+export const getPlaidFinancialProfile = async (userId: string): Promise<FinancialProfile> => {
+  const response = await api.get(`/api/plaid/financial-profile/${userId}`)
+  return response.data
+}
+
+// Check if user has linked Plaid accounts
+export const getPlaidStatus = async (userId: string): Promise<{ linked: boolean }> => {
+  const response = await api.get(`/api/plaid/status/${userId}`)
+  return response.data
+}
+
+// Run enhanced simulation with Plaid-derived parameters
+export interface EnhancedSimulationRequest {
+  plaidUserId: string
+  userInputs: {
+    age: number
+    riskTolerance: 'low' | 'medium' | 'high'
+  }
+  goal: {
+    targetAmount: number
+    timelineMonths: number
+    goalType: string
+  }
+  simulationParams?: {
+    nSimulations?: number
+  }
+}
+
+export const runEnhancedSimulation = async (
+  request: EnhancedSimulationRequest
+): Promise<SimulationResults> => {
+  const response = await api.post('/api/simulate-enhanced', request)
   return response.data
 }
 

@@ -5,14 +5,10 @@ import { Mic, Send, Loader2, Volume2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { sendVoiceGoal, type ConversationMessage, type VoiceGoalResponse } from '@/lib/api'
+import type { DisplayMessage } from '@/types'
 
 interface VoiceInputProps {
   onGoalComplete: (goal: { targetAmount: number; timelineMonths: number; goalType: string }) => void
-}
-
-interface DisplayMessage extends ConversationMessage {
-  id: string
-  isPlaying?: boolean
 }
 
 export function VoiceInput({ onGoalComplete }: VoiceInputProps) {
