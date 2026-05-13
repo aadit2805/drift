@@ -148,12 +148,20 @@ function Connections({ count = 200 }: { count?: number }) {
   )
 }
 
+function ReadyTrigger({ onReady }: { onReady: () => void }) {
+  useEffect(() => {
+    onReady()
+  }, [onReady])
+  return null
+}
+
 interface ParticleFieldProps {
   className?: string
   particleCount?: number
+  onReady?: () => void
 }
 
-export function ParticleField({ className = '', particleCount = 400 }: ParticleFieldProps) {
+export function ParticleField({ className = '', particleCount = 400, onReady }: ParticleFieldProps) {
   return (
     <div className={`fixed inset-0 ${className}`}>
       <Canvas
@@ -161,6 +169,7 @@ export function ParticleField({ className = '', particleCount = 400 }: ParticleF
         style={{ background: 'transparent' }}
         dpr={[1, 2]}
       >
+        {onReady && <ReadyTrigger onReady={onReady} />}
         <Particles count={particleCount} />
         <Connections count={Math.floor(particleCount * 0.5)} />
       </Canvas>

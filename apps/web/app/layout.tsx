@@ -5,6 +5,14 @@ import { Providers } from './providers'
 export const metadata: Metadata = {
   title: 'Drift',
   description: 'Monte Carlo simulation for personal finance',
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '64x64', type: 'image/png' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+    shortcut: '/favicon.png',
+  },
 }
 
 export default function RootLayout({
